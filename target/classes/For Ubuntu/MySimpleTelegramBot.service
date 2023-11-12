@@ -1,0 +1,15 @@
+[Unit]
+Description=MyBot
+After=syslog.target network.target
+
+[Service]
+SuccessExitStatus=143
+
+User=root
+Group=root
+
+Type=simple
+ExecStart=java -jar home/alex/JavaTest/mySimpleTelegramBot.jar
+
+[Install]
+WantedBy=multi-user.target
