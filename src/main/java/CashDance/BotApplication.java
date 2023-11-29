@@ -1,4 +1,4 @@
-package CashDance.Bot;
+package CashDance;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

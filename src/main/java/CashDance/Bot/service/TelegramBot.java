@@ -2,17 +2,17 @@ package CashDance.Bot.service;
 
 
 import CashDance.Bot.config.BotConfig;
-import CashDance.Bot.model.Ads;
-import CashDance.Bot.model.AdsRepository;
+import CashDance.Bot.model.BankCard;
+import CashDance.Bot.model.interfaces.AdsRepository;
 import CashDance.Bot.model.User;
-import CashDance.Bot.model.UserRepository;
+import CashDance.Bot.model.interfaces.BankCardRepository;
+import CashDance.Bot.model.interfaces.UserRepository;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Timestamp;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -28,8 +28,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+
 
 @Slf4j
 @Component
@@ -45,22 +45,36 @@ public class TelegramBot extends TelegramLongPollingBot {
             "Type /mydata to see data stored about yourself \n\n" +
             "Type /help to see this message again";
     final BotConfig config;
+    //    private Map<Long, ServiceState> chatState = new HashMap<>();
+    private ServiceState serviceState;
+    private ServiceState chatState;
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
+    private BankCardRepository bankCardRepository;
+    @Autowired
     private AdsRepository adsRepository;
 
     public TelegramBot(BotConfig config) {
+
+        chatState = ServiceState.DEFAULT_STATE;
+//        chatState.put(0L,ServiceState.DEFAULT_STATE);
 //      configuring bot Menu in constructor
         this.config = config;
         List<BotCommand> listofCommands = new ArrayList<>();
         listofCommands.add(new BotCommand("/start", "get a welcome message"));
+        listofCommands.add(new BotCommand("/mycards", "manage your bank cards"));
         listofCommands.add(new BotCommand("/register", "register yourself"));
         listofCommands.add(new BotCommand("/mydata", "get your data stored"));
         listofCommands.add(new BotCommand("/deletedata", "delete your data"));
         listofCommands.add(new BotCommand("/help", "info how to use this bot"));
         listofCommands.add(new BotCommand("/settings", "set your preferences"));
+
+        listofCommands.add(new BotCommand("/allcards", "see all your cards"));
+        listofCommands.add(new BotCommand("/newcard", "create a new card"));
+        listofCommands.add(new BotCommand("/changecard", "modify your card"));
+        listofCommands.add(new BotCommand("/deletecard", "delete your card"));
         try {
             this.execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
 
@@ -80,9 +94,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         return config.getToken();
     }
 
-//    incoming message handling
+
+    private String newBankName;
+    private String newCardName;
+    //    incoming message handling
     @Override
     public void onUpdateReceived(Update update) {
+
 
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
@@ -96,6 +114,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     prepareAndSendMessage(user.getChatId(), textToSend);
                 }
             } else {
+
 //          other commands handling
                 switch (messageText) {
                     case "/start":
@@ -108,8 +127,31 @@ public class TelegramBot extends TelegramLongPollingBot {
                     case "/register":
                         register(chatId);
                         break;
+                    case "/newcard":
+                        log.info("Building new bank card...");
+                        prepareAndSendMessage(chatId, "Введите название банка");
+                        chatState = ServiceState.AWAITING_BANK_NAME;
+                        log.info("Waiting for bank name...");
+                        break;
+                    case "/mycards":
+                        showMyCards(chatId);
+                        break;
                     default:
-                        prepareAndSendMessage(chatId, "Sorry, command was not recognized");
+
+                        switch (chatState) {
+                            case AWAITING_BANK_NAME:
+                                newBankName = update.getMessage().getText();
+                                chatState = ServiceState.AWAITING_BANK_CARD_NAME;
+                                prepareAndSendMessage(chatId, "Введите название карты");
+                                break;
+                            case AWAITING_BANK_CARD_NAME:
+                                newCardName = update.getMessage().getText();
+                                chatState = ServiceState.DEFAULT_STATE;
+                                saveNewCardToDb(chatId);
+                                break;
+                            default:
+                                prepareAndSendMessage(chatId, "Sorry, command was not recognized");
+                        }
                 }
             }
 //           if inlinekeyboard button is pressed
@@ -135,7 +177,33 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-//    stub demo method without real registration
+    private void showMyCards(long chatId) {
+        Iterable<BankCard> bankCardList = bankCardRepository.findAll();
+        String bankCardString = "";
+        for (BankCard bankCard : bankCardList) {
+            bankCardString += bankCard.toString() + "\n";
+        }
+        prepareAndSendMessage(chatId,bankCardString);
+    }
+
+    private void saveNewCardToDb(long chatId) {
+        Optional<User> optionalUser = userRepository.findById(chatId);
+        // todo add presence check
+        User user = optionalUser.get();
+        // todo check if card already registered
+        BankCard newBankCard = new BankCard();
+        newBankCard.setBankName(newBankName);
+        newBankCard.setCardName(newCardName);
+        newBankCard.setUser(user);
+        bankCardRepository.save(newBankCard);
+        log.info("Bank card saved to db " + newBankCard);
+        prepareAndSendMessage(chatId, "Карта сохранена: " + newBankCard);
+    }
+
+    private void myCardsOptions() {
+    }
+
+    //    stub demo method without real registration
     private void register(long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
@@ -159,7 +227,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeMessage(message);
     }
 
-//  Registration in DB
+    //  Registration in DB
     private void registerUser(Message message) {
         // check if user already registered
         if (userRepository.findById(message.getChatId()).isEmpty()) {
@@ -192,11 +260,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
-        row.add("weather");
-        row.add("get random joke");
+        row.add("/newcard");
+        row.add("/mycards");
         keyboardRows.add(row);
         row = new KeyboardRow();
-        row.add("register");
+        row.add("/start");
         row.add("check my data");
         row.add("delete my data");
         keyboardRows.add(row);
@@ -205,7 +273,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeMessage(message);
     }
 
-    private void executeEditMessageText(String text, long chatId, long messageId){
+    private void executeEditMessageText(String text, long chatId, long messageId) {
         EditMessageText message = new EditMessageText();
         message.setChatId(String.valueOf(chatId));
         message.setText(text);
@@ -218,7 +286,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void executeMessage(SendMessage message){
+    private void executeMessage(SendMessage message) {
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -226,27 +294,29 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void prepareAndSendMessage(long chatId, String textToSend){
+    private void prepareAndSendMessage(long chatId, String textToSend) {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText(textToSend);
         executeMessage(message);
     }
 
-    /**
-     * For scheduled messages mailing.
-     */
-    @Scheduled(cron = "${cron.scheduler}") // parameters to tune the sending time
-    private void sendAds (){
-        var ads = adsRepository.findAll();
-        var users = userRepository.findAll();
+    //    @Scheduled(cron = "${cron.scheduler}") // parameters to tune the sending time
+    //    private void sendAds() {
+    //        var ads = adsRepository.findAll();
+    //        var users = userRepository.findAll();
+    //
+    //        for (Ads ad : ads) {
+    //            //TODO make a separate method
+    //            for (User user : users) {
+    //                prepareAndSendMessage(user.getChatId(), ad.getAd());
+    //            }
+    //
+    //        }
+    //    }
 
-        for (Ads ad: ads) {
-            //TODO make a separate method
-            for (User user: users) {
-                prepareAndSendMessage(user.getChatId(), ad.getAd());
-            }
-
-        }
-    }
+//    private String receiveValueFromUser(Message message, Long chatId, ServiceState serviceState) {
+//        chatState = serviceState;
+//        return message.getText();
+//    }
 }
