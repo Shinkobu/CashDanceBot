@@ -19,6 +19,14 @@ public class User {
     private String userName;
     private Timestamp registeredAt;
 
+    public List<CbCategory> getCbCategoryList() {
+        return cbCategoryList;
+    }
+
+    public void setCbCategoryList(List<CbCategory> cbCategoryList) {
+        this.cbCategoryList = cbCategoryList;
+    }
+
     /**
      * @OneToMany ("user" is the name of corresponding field in BankCard)
      * cascade = CascadeType.ALL - if user is deleted, all bankcards will be deleted
@@ -27,6 +35,14 @@ public class User {
     @OneToMany (mappedBy = "user", cascade = CascadeType.ALL)
     @OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private List<BankCard> bankCardsList;
+
+    @OneToMany (mappedBy = "user", cascade = CascadeType.ALL)
+    @OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
+    private List<CbCategory> cbCategoryList;
+
+    @OneToMany (mappedBy = "user", cascade = CascadeType.ALL)
+    @OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
+    private List<CbChance> cbChanceList;
 
     public User() {
     }

@@ -57,7 +57,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-        </dependency>
+            </dependency>
 <!--emoji support-->
         <dependency>
             <groupId>com.vdurmont</groupId>

@@ -1,6 +1,9 @@
 package CashDance.Bot.model;
 
+import org.hibernate.annotations.OnDelete;
+
 import javax.persistence.*;
+import java.util.List;
 
 
 @Entity
@@ -20,11 +23,23 @@ public class BankCard {
     @JoinColumn(name="user_id")
     private User user;
 
+    @OneToMany (mappedBy = "bankCard", cascade = CascadeType.ALL)
+    @OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
+    private List<CbChance> cbChanceList;
+
+    public List<CbChance> getCbChanceList() {
+        return cbChanceList;
+    }
+
+    public void setCbChanceList(List<CbChance> cbChanceList) {
+        this.cbChanceList = cbChanceList;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int cardId;
+    private Long cardId;
 
-    public BankCard(String cardName, String bankName, User user, int cardId) {
+    public BankCard(String cardName, String bankName, User user, Long cardId) {
         this.cardName = cardName;
         this.bankName = bankName;
         this.user = user;
@@ -54,11 +69,11 @@ public class BankCard {
         this.bankName = bankName;
     }
 
-    public int getCardId() {
+    public Long getCardId() {
         return cardId;
     }
 
-    public void setCardId(int cardId) {
+    public void setCardId(Long cardId) {
         this.cardId = cardId;
     }
 
