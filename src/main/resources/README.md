@@ -94,3 +94,32 @@ https://www.youtube.com/watch?v=TuCpUAavpG0&list=PL7ZzXmLk6CYUl4exDW4S_2sQbYpQNs
 
 @Scheduled для автоматической отправки сообщений из БД
 https://www.youtube.com/watch?v=haf9Vb-YYug&list=PL7ZzXmLk6CYUl4exDW4S_2sQbYpQNswfR&index=10
+
+
+    1  sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+    2  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+    3  sudo apt-get update
+    4  sudo apt-get -y install postgresql
+    6  sudo systemctl status postgresql
+    7  su postgres
+    8  sudo -i -u postgres
+    9  sudo apt update
+   10  apt install openjdk-17-jre-headless
+   11  ll
+   12  cd /etc/systemd/system/
+   13  nano cashdancebot.service
+   14  systemctl status cashdancebot.service
+   15  systemctl start cashdancebot.service
+   19  sudo update
+
+   22  sudo apt update
+   23  apt list --upgradable
+   24  sudo apt full-upgrade
+   25  sudo reboot
+   27  systemctl status cashdancebot.service
+   28  systemctl start cashdancebot.service
+   
+   30  sudo -u postgres psql template1
+
+
+https://jeka.by/post/1104/postgresql-connect-via-terminal/ 

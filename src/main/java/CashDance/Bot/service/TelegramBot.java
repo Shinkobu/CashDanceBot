@@ -29,6 +29,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 
@@ -62,9 +63,12 @@ public class TelegramBot extends TelegramLongPollingBot {
     private CbChanceRepository cbChanceRepository;
     private String newBankName;
     private String newCardName;
+    private String newCategoryName;
     private BankCard bankCardForNewChance;
     private CbCategory categoryForNewChance;
     private Double rateForNewChance;
+    private LocalDate startDateOfNewChance;
+    private LocalDate endDateOfNewChance;
 
 
     public TelegramBot(BotConfig config) {
@@ -144,12 +148,22 @@ public class TelegramBot extends TelegramLongPollingBot {
                         chatState = ServiceState.NEW_BANK_CARD__AWAITING_BANK_NAME;
                         log.info("Waiting for bank name...");
                         break;
+                    case "/newcategory":
+                        log.info("Building new category...");
+                        prepareAndSendMessage(chatId, "Введите название категории");
+                        chatState = ServiceState.NEW_CATEGORY__AWAITING_CATEGORY_NAME;
+                        log.info("Waiting for category name...");
+                        break;
                     case "/mycards":
                         showMyCards(chatId);
                         chatState = ServiceState.DEFAULT_STATE;
                         break;
                     case "/mycategories":
                         showMyCategories(chatId);
+                        chatState = ServiceState.DEFAULT_STATE;
+                        break;
+                    case "/mycategoriesbuttons":
+                        showMyCategoriesButtons(chatId);
                         chatState = ServiceState.DEFAULT_STATE;
                         break;
                     case "/newchance":
@@ -167,9 +181,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                         chatState = ServiceState.DEFAULT_STATE;
                         break;
                     case "/mychancesofcategory":
-                        prepareAndSendMessage(chatId, "Введите id категории");
+                        prepareAndSendMessage(chatId, "Выберите категорию");
                         showMyCategories(chatId);
                         chatState = ServiceState.ALL_CHANCES__AWAITING_CATEGORY_ID;
+                        break;
+                    case "/mychancesofcategoryactive":
+                        prepareAndSendMessage(chatId, "Выберите категорию");
+                        showMyCategories(chatId);
+                        chatState = ServiceState.ALL_CHANCES_ACTIVE__AWAITING_CATEGORY_ID;
                         break;
                     default:
 
@@ -183,6 +202,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                                 newCardName = update.getMessage().getText();
                                 chatState = ServiceState.DEFAULT_STATE;
                                 saveNewCardToDb(chatId);
+                                break;
+                            case NEW_CATEGORY__AWAITING_CATEGORY_NAME:
+                                newCategoryName = update.getMessage().getText();
+                                chatState = ServiceState.DEFAULT_STATE;
+                                saveNewCategoryToDb(chatId);
                                 break;
                             case NEW_CHANCE__AWAITING_BANK_CARD_ID:
                                 String bankCardId = update.getMessage().getText();
@@ -201,14 +225,40 @@ public class TelegramBot extends TelegramLongPollingBot {
                                 break;
                             case NEW_CHANCE__AWAITING_RATE:
                                 rateForNewChance = Double.parseDouble(update.getMessage().getText()) / 100;
-                                chatState = ServiceState.DEFAULT_STATE;
-                                saveNewChancetoDb(chatId);
+                                chatState = ServiceState.NEW_CHANCE__AWAITING_START_DATE;
+                                prepareAndSendMessage(chatId, "Введите дату начала действия кэшбека в формате dd-mm-yyyy");
+                                break;
+                            case NEW_CHANCE__AWAITING_START_DATE:
+//                                public static DateTimeFormatter oldDateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                                startDateOfNewChance = LocalDate.parse(update.getMessage().getText(),
+                                        DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                                chatState = ServiceState.NEW_CHANCE__AWAITING_END_DATE;
+                                prepareAndSendMessage(chatId, "Введите дату окончания действия кэшбека в формате dd-mm-yyyy");
+                                break;
+                            case NEW_CHANCE__AWAITING_END_DATE:
+
+                                endDateOfNewChance = LocalDate.parse(update.getMessage().getText(),
+                                        DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                                if (endDateOfNewChance.isAfter(startDateOfNewChance) || endDateOfNewChance.isEqual(startDateOfNewChance)){
+                                    chatState = ServiceState.DEFAULT_STATE;
+                                    saveNewChancetoDb(chatId);
+                                } else {
+                                    prepareAndSendMessage(chatId,"Введённая дата не может быть раньше даты начала");
+                                }
+
                                 break;
                             case ALL_CHANCES__AWAITING_CATEGORY_ID:
-                                String categoryId1 = update.getMessage().getText();
-                                Optional<CbCategory> cbCategory1 = cbCategoryRepository.findById(Long.valueOf(categoryId1));
+                                String categoryId2 = update.getMessage().getText();
+                                Optional<CbCategory> cbCategory1 = cbCategoryRepository.findById(Long.valueOf(categoryId2));
                                 CbCategory cbCategory2 = cbCategory1.get();
-                                showMyChancesOfCategory(chatId, cbCategory2);
+                                showMyChancesOfCategory(chatId, cbCategory2, false);
+                                chatState = ServiceState.DEFAULT_STATE;
+                                break;
+                            case ALL_CHANCES_ACTIVE__AWAITING_CATEGORY_ID:
+                                String categoryId3 = update.getMessage().getText();
+                                Optional<CbCategory> cbCategory3 = cbCategoryRepository.findById(Long.valueOf(categoryId3));
+                                CbCategory cbCategory4 = cbCategory3.get();
+                                showMyChancesOfCategory(chatId, cbCategory4, true);
                                 chatState = ServiceState.DEFAULT_STATE;
                                 break;
                             default:
@@ -222,22 +272,30 @@ public class TelegramBot extends TelegramLongPollingBot {
             String callbackData = update.getCallbackQuery().getData();
             long messageId = update.getCallbackQuery().getMessage().getMessageId();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
-// Edition of sent message after pressing yes/no button
+// Edition of sent message after pressing button
             EditMessageText message = new EditMessageText();
-            if (callbackData.equals(YES_BUTTON)) {
-                String text = "You pressed YES button";
-                executeEditMessageText(text, chatId, messageId);
-
-            } else if (callbackData.equals(NO_BUTTON)) {
-                String text = "You pressed NO button";
-                executeEditMessageText(text, chatId, messageId);
-            }
+            String text = "Выбрано: " + callbackData;
+            executeEditMessageText(text, chatId, messageId);
             try {
                 execute(message);
             } catch (TelegramApiException e) {
                 log.error("Error occured: " + e.getMessage());
             }
         }
+    }
+
+    private void saveNewCategoryToDb(long chatId) {
+        Optional<User> optionalUser = userRepository.findById(chatId);
+        // todo add presence check
+        User user = optionalUser.get();
+        // todo check if card already registered
+        CbCategory newCbCategory = new CbCategory();
+        newCbCategory.setUser(user);
+        newCbCategory.setName(newCategoryName);
+
+        cbCategoryRepository.save(newCbCategory);
+        log.info("Category saved to db " + newCbCategory);
+        prepareAndSendMessage(chatId, "Категория сохранена: " + newCbCategory);
     }
 
     private void showMyCards(long chatId) {
@@ -258,6 +316,33 @@ public class TelegramBot extends TelegramLongPollingBot {
         prepareAndSendMessage(chatId, s);
     }
 
+    private void showMyCategoriesButtons(long chatId) {
+        Iterable<CbCategory> cbCategories = cbCategoryRepository.findAll();
+
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText("Выберите категорию:");
+
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> inlineRowsList = new ArrayList<>();
+
+        for (CbCategory cbCategory : cbCategories) {
+
+            List<InlineKeyboardButton> inlineRowButtonList = new ArrayList<>();
+            var tempButton = new InlineKeyboardButton();
+
+            tempButton.setText(cbCategory.getName());
+            tempButton.setCallbackData(cbCategory.getName());
+            inlineRowButtonList.add(tempButton);
+            inlineRowsList.add(inlineRowButtonList);
+        }
+
+        inlineKeyboardMarkup.setKeyboard(inlineRowsList);
+
+        message.setReplyMarkup(inlineKeyboardMarkup);
+        executeMessage(message);
+    }
+
     private void showMyChances(long chatId) {
         Iterable<CbChance> cbChances = cbChanceRepository.findAll();
         String s = "";
@@ -267,16 +352,30 @@ public class TelegramBot extends TelegramLongPollingBot {
         prepareAndSendMessage(chatId, s);
     }
 
-    private void showMyChancesOfCategory(long chatId, CbCategory cbCategory) {
+    private void showMyChancesOfCategory(long chatId, CbCategory cbCategory, boolean isActive) {
         Iterable<CbChance> cbChances = cbChanceRepository.findAll();
         String s = "";
         for (CbChance cbChance : cbChances) {
-            if (cbChance.getCbCategory().getName().equals(cbCategory.getName())) {
-                s += cbChance.toString() + "\n";
+            if (isActive) {
+                LocalDate todayDate = LocalDate.now();
+                if (cbChance.getEndDate().isAfter(todayDate.minusDays(1)) &&
+                        cbChance.getStartDate().isBefore(todayDate.plusDays(1))) {
+                    if (cbChance.getCbCategory().getName().equals(cbCategory.getName())) {
+                        s += cbChance.toString() + "\n";
+                    }
+                }
+            } else {
+                if (cbChance.getCbCategory().getName().equals(cbCategory.getName())) {
+                    s += cbChance.toString() + "\n";
+                }
             }
+        }
+        if (s.equals("")) {
+            s="Записей не найдено!";
         }
         prepareAndSendMessage(chatId, s);
     }
+
 
     private void saveNewCardToDb(long chatId) {
         Optional<User> optionalUser = userRepository.findById(chatId);
@@ -304,8 +403,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         newCbChance.setCbCategory(categoryForNewChance);
 
         newCbChance.setRate(rateForNewChance);
-        newCbChance.setStartDate(LocalDate.now());
-        newCbChance.setEndDate(LocalDate.now());
+        newCbChance.setStartDate(startDateOfNewChance);
+        newCbChance.setEndDate(endDateOfNewChance);
 
 
         cbChanceRepository.save(newCbChance);
@@ -366,23 +465,23 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             log.info("Basic Cb categories for user " + user + " created!");
 
-            BankCard bankCard = new BankCard();
-            bankCard.setCardName("Кредитка сбера");
-            bankCard.setBankName("Сбербанк");
-            bankCard.setUser(user);
-            bankCardRepository.save(bankCard);
-
-            BankCard bankCard1 = new BankCard();
-            bankCard1.setCardName("Карта Тинькофф");
-            bankCard1.setBankName("Тинькофф");
-            bankCard1.setUser(user);
-            bankCardRepository.save(bankCard1);
-
-            BankCard bankCard2 = new BankCard();
-            bankCard2.setCardName("Кредитка Альфы");
-            bankCard2.setBankName("Альфа-банк");
-            bankCard2.setUser(user);
-            bankCardRepository.save(bankCard2);
+//            BankCard bankCard = new BankCard();
+//            bankCard.setCardName("Кредитка сбера");
+//            bankCard.setBankName("Сбербанк");
+//            bankCard.setUser(user);
+//            bankCardRepository.save(bankCard);
+//
+//            BankCard bankCard1 = new BankCard();
+//            bankCard1.setCardName("Карта Тинькофф");
+//            bankCard1.setBankName("Тинькофф");
+//            bankCard1.setUser(user);
+//            bankCardRepository.save(bankCard1);
+//
+//            BankCard bankCard2 = new BankCard();
+//            bankCard2.setCardName("Кредитка Альфы");
+//            bankCard2.setBankName("Альфа-банк");
+//            bankCard2.setUser(user);
+//            bankCardRepository.save(bankCard2);
 
         }
         log.info("User with id " + message.getChatId() + " is already registered");
@@ -404,11 +503,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
         row.add("/mychancesofcategory");
+        row.add("/mychancesofcategoryactive");
         row.add("/newcard");
         row.add("/newcategory");
         row.add("/newchance");
         keyboardRows.add(row);
         row = new KeyboardRow();
+        row.add("/start");
         row.add("/start");
         row.add("/mycards");
         row.add("/mycategories");
