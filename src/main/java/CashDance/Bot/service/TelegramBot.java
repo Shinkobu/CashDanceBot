@@ -239,11 +239,11 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                                 endDateOfNewChance = LocalDate.parse(update.getMessage().getText(),
                                         DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-                                if (endDateOfNewChance.isAfter(startDateOfNewChance) || endDateOfNewChance.isEqual(startDateOfNewChance)){
+                                if (endDateOfNewChance.isAfter(startDateOfNewChance) || endDateOfNewChance.isEqual(startDateOfNewChance)) {
                                     chatState = ServiceState.DEFAULT_STATE;
                                     saveNewChancetoDb(chatId);
                                 } else {
-                                    prepareAndSendMessage(chatId,"Введённая дата не может быть раньше даты начала");
+                                    prepareAndSendMessage(chatId, "Введённая дата не может быть раньше даты начала");
                                 }
 
                                 break;
@@ -302,7 +302,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         Iterable<BankCard> bankCardList = bankCardRepository.findAll();
         String bankCardString = "";
         for (BankCard bankCard : bankCardList) {
-            bankCardString += bankCard.toString() + "\n";
+            if (bankCard.getUser().getChatId().equals(chatId)) {
+                bankCardString += bankCard.toString() + "\n";
+            }
         }
         prepareAndSendMessage(chatId, bankCardString);
     }
@@ -311,7 +313,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         Iterable<CbCategory> cbCategories = cbCategoryRepository.findAll();
         String s = "";
         for (CbCategory cbCategory : cbCategories) {
-            s += cbCategory.toString() + "\n";
+            if (cbCategory.getUser().getChatId().equals(chatId)) {
+                s += cbCategory.toString() + "\n";
+            }
         }
         prepareAndSendMessage(chatId, s);
     }
@@ -345,9 +349,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void showMyChances(long chatId) {
         Iterable<CbChance> cbChances = cbChanceRepository.findAll();
+
         String s = "";
         for (CbChance cbChance : cbChances) {
-            s += cbChance.toString() + "\n";
+            if (cbChance.getUser().getChatId().equals(chatId)) {
+                s += cbChance.toString() + "\n";
+            }
         }
         prepareAndSendMessage(chatId, s);
     }
@@ -356,22 +363,25 @@ public class TelegramBot extends TelegramLongPollingBot {
         Iterable<CbChance> cbChances = cbChanceRepository.findAll();
         String s = "";
         for (CbChance cbChance : cbChances) {
-            if (isActive) {
-                LocalDate todayDate = LocalDate.now();
-                if (cbChance.getEndDate().isAfter(todayDate.minusDays(1)) &&
-                        cbChance.getStartDate().isBefore(todayDate.plusDays(1))) {
+            if (cbChance.getUser().getChatId().equals(chatId)) {
+
+                if (isActive) {
+                    LocalDate todayDate = LocalDate.now();
+                    if (cbChance.getEndDate().isAfter(todayDate.minusDays(1)) &&
+                            cbChance.getStartDate().isBefore(todayDate.plusDays(1))) {
+                        if (cbChance.getCbCategory().getName().equals(cbCategory.getName())) {
+                            s += cbChance.toString() + "\n";
+                        }
+                    }
+                } else {
                     if (cbChance.getCbCategory().getName().equals(cbCategory.getName())) {
                         s += cbChance.toString() + "\n";
                     }
                 }
-            } else {
-                if (cbChance.getCbCategory().getName().equals(cbCategory.getName())) {
-                    s += cbChance.toString() + "\n";
-                }
             }
         }
         if (s.equals("")) {
-            s="Записей не найдено!";
+            s = "Записей не найдено!";
         }
         prepareAndSendMessage(chatId, s);
     }

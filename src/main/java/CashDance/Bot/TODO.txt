@@ -1,0 +1,14 @@
+
+
+
+
+
+Version 0.1 - 12.12.23
+base functions
+
+TODO date input
+TODO buttons always on top
+TODO add useful buttons always on top
+TODO cards, categories from id to buttons
+TODO when select card during new chance show name of chosen card + category etc
+TODO all users can see all chances and categories
