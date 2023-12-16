@@ -40,14 +40,24 @@ public class TelegramBot extends TelegramLongPollingBot {
     static final String YES_BUTTON = "YES_BUTTON";
     static final String NO_BUTTON = "NO_BUTTON";
     static final String ERROR_TEXT = "Error occurred: ";
-    private static final String HELP_TEXT = "This bot is created to demonstrate Spring capabilities. \n\n " +
-            "You can execute commands from the main menu on the left or by typing command\n\n" +
-            "Type /start to see a welcome message \n\n" +
-            "Type /register to register \n\n" +
-            "Type /mydata to see data stored about yourself \n\n" +
-            "Type /help to see this message again";
+    private static final String HELP_TEXT = "Это программа-помощник по кешбеку с ваших банковских карт.\n\n" +
+            "Пример проблемы: у Василия есть карта альфа-банка, карта тинькофф и карта озон банка. Василий знает, что " +
+            "по всем картам каждый месяц обновляются категории кешбека. В один месяц высокий кешбек за заправки по " +
+            "тинькофф и за супермаркеты у озона, в следующий - всё меняется. И вот Василий приезжает на заправку и пытается вспомнить " +
+            "по какой карте сегодня он получит максимальный кешбек? Нужно открыть банковское приложение и посмотреть!\n\n Хорошо, но " +
+            "для этого придётся открывать 3-4 приложения, а это долго, копаться неохота, семья ждёт в машине и Василий оплачивает топливо картой наугад.\n\n" +
+            "CashDanceBot решает эту проблему. \n\n Василий может раз в месяц занести информацию по какой карте в каких категориях у него " +
+            "кешбек и на заправке просто спросить у бота, какие у него есть действующие кешбеки по категории Заправки. Бот сделает выборку " +
+            "и подскажет, что по он получит альфе 1%, по озону 3%, по тинькофф 5%.\n\n" +
+            "Для просмотра доступных команд используйте /commands";
+
+    private static final String COMMANDS_TEXT = "Раздел в разработке";
+
+//            "/start to see a welcome message \n\n" +
+//            "Type /register to register \n\n" +
+//            "Type /mydata to see data stored about yourself \n\n" +
+//            "Type /help to see this message again";
     final BotConfig config;
-    //    private Map<Long, ServiceState> chatState = new HashMap<>();
     private ServiceState serviceState;
     private ServiceState chatState;
     @Autowired
@@ -136,6 +146,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                         break;
                     case "/help":
                         prepareAndSendMessage(chatId, HELP_TEXT);
+                        chatState = ServiceState.DEFAULT_STATE;
+                        break;
+                    case "/commands":
+                        prepareAndSendMessage(chatId, COMMANDS_TEXT);
                         chatState = ServiceState.DEFAULT_STATE;
                         break;
                     case "/register":
@@ -498,8 +512,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void startCommandReceived(long chatId, String name) {
-        String answer = EmojiParser.parseToUnicode("Hi, " + name + ", nice to meet you!" + " :blush:");
-//      String answer = "Hi, " + name + ", nice to meet you!";
+        String answer = EmojiParser.parseToUnicode("Привет, " + name + ", с вами CashDanceBot" + " :blush: \n\n" +
+                "Для справки используйте команду /help \n\n" +
+                "Для просмотра доступных команд используйте /commands");
         log.info("Replied to user " + name);
         sendMessage(chatId, answer);
     }
