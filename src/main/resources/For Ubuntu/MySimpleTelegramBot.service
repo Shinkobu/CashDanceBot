@@ -4,6 +4,9 @@ After=syslog.target network.target
 
 [Service]
 SuccessExitStatus=143
+Restart=always
+RestartSec=360
+
 
 User=root
 Group=root

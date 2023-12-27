@@ -18,6 +18,7 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
@@ -31,6 +32,9 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+
+import static CashDance.Bot.service.Constants.mainMenuList;
+import static CashDance.Bot.service.Constants.mainMenu_MyCards;
 
 
 @Slf4j
@@ -53,7 +57,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private static final String COMMANDS_TEXT = "Раздел в разработке";
 
-//            "/start to see a welcome message \n\n" +
+    //            "/start to see a welcome message \n\n" +
 //            "Type /register to register \n\n" +
 //            "Type /mydata to see data stored about yourself \n\n" +
 //            "Type /help to see this message again";
@@ -62,7 +66,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     private ServiceState chatState;
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private BankCardRepository bankCardRepository;
     @Autowired
@@ -89,6 +92,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.config = config;
         List<BotCommand> listofCommands = new ArrayList<>();
         listofCommands.add(new BotCommand("/start", "get a welcome message"));
+        listofCommands.add(new BotCommand("/mainmenu", "show main menu"));
         listofCommands.add(new BotCommand("/mycards", "manage your bank cards"));
         listofCommands.add(new BotCommand("/register", "register yourself"));
         listofCommands.add(new BotCommand("/mydata", "get your data stored"));
@@ -204,6 +208,18 @@ public class TelegramBot extends TelegramLongPollingBot {
                         showMyCategories(chatId);
                         chatState = ServiceState.ALL_CHANCES_ACTIVE__AWAITING_CATEGORY_ID;
                         break;
+                    case "/mainmenu":
+                        showMenu(chatId, "Главное меню", Constants.mainMenuList);
+                        chatState = ServiceState.DEFAULT_STATE;
+                        break;
+                    case "/cardmenu":
+                        showMenu(chatId, "Мои банковские карты", Constants.cardMenuList);
+                        chatState = ServiceState.DEFAULT_STATE;
+                        break;
+                    case "/categorymenu":
+                        showMenu(chatId, "Мои категории кешбека", Constants.categoryMenuList);
+                        chatState = ServiceState.DEFAULT_STATE;
+                        break;
                     default:
 
                         switch (chatState) {
@@ -281,15 +297,55 @@ public class TelegramBot extends TelegramLongPollingBot {
                         }
                 }
             }
-//           if inlinekeyboard button is pressed
+// If inlinekeyboard button is pressed
         } else if (update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
             long messageId = update.getCallbackQuery().getMessage().getMessageId();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
 // Edition of sent message after pressing button
             EditMessageText message = new EditMessageText();
-            String text = "Выбрано: " + callbackData;
+            String text = "Вы выбрали: " + callbackData;
             executeEditMessageText(text, chatId, messageId);
+
+            //      String to enum
+            MenuButtons menuButtons = MenuButtons.valueOf(callbackData);
+
+            switch (menuButtons) {
+                case MAINMENU_MYCASHBACK:
+                    showMyChances(chatId);
+                    break;
+                case MAINMENU_MYCARDS:
+                    showMenu(chatId, "Мои карты", Constants.cardMenuList);
+                    break;
+                case MAINMENU_MYCATEGORIES:
+                    showMenu(chatId, "Мои категории", Constants.categoryMenuList);
+                    break;
+                case ALLMENU_TOMAINMENU:
+                    showMenu(chatId, "Главное меню", Constants.mainMenuList);
+                    break;
+                case CARDSNMENU_MYCARDS:
+                    showMyCards(chatId);
+                    break;
+                case CARDSMENU_NEWCARD:
+//                  TODO refactor. DRY
+                    log.info("Building new bank card...");
+                    prepareAndSendMessage(chatId, "Введите название банка");
+                    chatState = ServiceState.NEW_BANK_CARD__AWAITING_BANK_NAME;
+                    log.info("Waiting for bank name...");
+                    break;
+                case CARDSMENU_EDITCARD:
+                    log.info("Editing bank card...");
+                    prepareAndSendMessage(chatId, "Выберите карту");
+                    List<MenuOption> cardList = new ArrayList<>();
+                    // todo build cardList
+                    showMenu(chatId, "Выберите карту", cardList);
+
+
+                    break;
+                default:
+                    break;
+            }
+
             try {
                 execute(message);
             } catch (TelegramApiException e) {
@@ -351,6 +407,31 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             tempButton.setText(cbCategory.getName());
             tempButton.setCallbackData(cbCategory.getName());
+            inlineRowButtonList.add(tempButton);
+            inlineRowsList.add(inlineRowButtonList);
+        }
+
+        inlineKeyboardMarkup.setKeyboard(inlineRowsList);
+
+        message.setReplyMarkup(inlineKeyboardMarkup);
+        executeMessage(message);
+    }
+
+    private void showMenu(long chatId, String menuName, List<MenuOption> menuOptionArrayList) {
+
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText(menuName + ":");
+
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> inlineRowsList = new ArrayList<>();
+
+        for (MenuOption menuOption : menuOptionArrayList) {
+            List<InlineKeyboardButton> inlineRowButtonList = new ArrayList<>();
+            var tempButton = new InlineKeyboardButton();
+
+            tempButton.setText(menuOption.getOptionName());
+            tempButton.setCallbackData(menuOption.menuButton.name());
             inlineRowButtonList.add(tempButton);
             inlineRowsList.add(inlineRowButtonList);
         }
@@ -514,6 +595,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void startCommandReceived(long chatId, String name) {
         String answer = EmojiParser.parseToUnicode("Привет, " + name + ", с вами CashDanceBot" + " :blush: \n\n" +
                 "Для справки используйте команду /help \n\n" +
+                "Для перехода в главное меню используйте команду /mainmenu \n\n" +
                 "Для просмотра доступных команд используйте /commands");
         log.info("Replied to user " + name);
         sendMessage(chatId, answer);
@@ -558,7 +640,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void executeMessage(SendMessage message) {
+
+    void executeMessage(SendMessage message) {
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -566,7 +649,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void prepareAndSendMessage(long chatId, String textToSend) {
+    void prepareAndSendMessage(long chatId, String textToSend) {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText(textToSend);
