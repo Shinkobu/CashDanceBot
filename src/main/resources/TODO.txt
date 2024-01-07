@@ -7,7 +7,7 @@ TODO buttons always on top
 TODO add useful buttons always on top
 TODO cards, categories from id to buttons
 TODO when select card during new chance show name of chosen card + category etc
-TODO cards add, delete, edit - {{{{{{{{{{{{{{{{ in work
+DONE cards add, delete, edit - {{{{{{{{{{{{{{{{ in work
 TODO categories add, delete, edit
 TODO chances add, delete, edit
 DONE greet and help
@@ -15,3 +15,4 @@ TODO commands list
 TODO menus
 TODO [CashDanceBot Telegram Executor] ERROR CashDance.Bot.service.TelegramBot - Error occured: ChatId parameter can't be empty if inlineMessageId is not present
 DONE all users can see all chances and categories
+TODO no duplicates by name for one user - for cards, categories, chances

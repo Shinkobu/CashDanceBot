@@ -5,6 +5,16 @@ import java.util.List;
 
 public class Constants {
 
+    static final String DELIMETER = "///";
+
+    static final MenuOption yesNoMenu_Yes = new MenuOption("Да", MenuButtons.CHOICEMENU_YES);
+    static final MenuOption yesNoMenu_No = new MenuOption("Нет", MenuButtons.CHOICEMENU_NO);
+
+    static List<MenuOption> choiceMenuList = new ArrayList<>() {{
+        add(yesNoMenu_Yes);
+        add(yesNoMenu_No);
+    }};
+
     static final MenuOption mainMenu_CashbackOfCategory = new MenuOption("Кешбек по категории", MenuButtons.MAINMENU_MYCASHBACK);
     static final MenuOption mainMenu_MyCards = new MenuOption("Мои банковские карты", MenuButtons.MAINMENU_MYCARDS);
     static final MenuOption mainMenu_MyCategories = new MenuOption("Мои категории кешбека", MenuButtons.MAINMENU_MYCATEGORIES);
@@ -17,7 +27,7 @@ public class Constants {
         add(mainMenu_MyCategories);
     }};
 
-    static final MenuOption cardsMenu_MyCards = new MenuOption("Мои карты", MenuButtons.CARDSNMENU_MYCARDS);
+    static final MenuOption cardsMenu_MyCards = new MenuOption("Мои карты", MenuButtons.CARDSMENU_MYCARDS);
     static final MenuOption cardsMenu_NewCard = new MenuOption("Новая карта", MenuButtons.CARDSMENU_NEWCARD);
     static final MenuOption cardsMenu_EditCard = new MenuOption("Редактировать карту", MenuButtons.CARDSMENU_EDITCARD);
     static final MenuOption cardsMenu_DeleteCard = new MenuOption("Удалить карту", MenuButtons.CARDSMENU_DELETECARD);
