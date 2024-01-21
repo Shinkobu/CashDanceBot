@@ -1,7 +1,6 @@
 package CashDance.Bot.model;
 
 import javax.persistence.*;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 
@@ -54,7 +53,14 @@ public class CbChance {
                 ", ставка " + rate * 100 + " %" +
                 ", действует с " + startDate +
                 ", до " + endDate +
-                " по карте " + bankCard.getCardName();
+                " по карте " + bankCard.getName();
+    }
+
+    public String shortToString() {
+        return cbCategory.getName() +
+                " - " + rate * 100 + " %" +
+                " с " + startDate +
+                ", до " + endDate;
     }
 
     public SimpleDateFormat getDateFormat() {

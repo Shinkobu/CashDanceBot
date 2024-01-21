@@ -28,7 +28,11 @@ public class CbCategory {
 
     @Override
     public String toString() {
-        return name +" "+ cbCategoryId  ;
+        return name;
+    }
+
+    public void setCbCategoryId(long cbCategoryId) {
+        this.cbCategoryId = cbCategoryId;
     }
 
     public long getCbCategoryId() {

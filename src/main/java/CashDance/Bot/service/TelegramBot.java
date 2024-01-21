@@ -7,7 +7,6 @@ import CashDance.Bot.model.CbCategory;
 import CashDance.Bot.model.CbChance;
 import CashDance.Bot.model.interfaces.*;
 import CashDance.Bot.model.User;
-import com.sun.xml.bind.v2.TODO;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,7 +52,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             "CashDanceBot решает эту проблему. \n\n Василий может раз в месяц занести информацию по какой карте в каких категориях у него " +
             "кешбек и на заправке просто спросить у бота, какие у него есть действующие кешбеки по категории Заправки. Бот сделает выборку " +
             "и подскажет, что по он получит альфе 1%, по озону 3%, по тинькофф 5%.\n\n" +
-            "Для просмотра доступных команд используйте /commands";
+            "Навигация осуществляется через меню /mainmenu";
 
     private static final String COMMANDS_TEXT = "Раздел в разработке";
 
@@ -82,7 +81,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     private Double rateForNewChance;
     private LocalDate startDateOfNewChance;
     private LocalDate endDateOfNewChance;
-    private Long BankCardId;
+    private Long bankCardId;
+    private Long cbChanceId;
+    private Long categoryId;
     private ChoiceFor choiceForEnum;
 
 
@@ -176,7 +177,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         log.info("Waiting for category name...");
                         break;
                     case "/mycards":
-                        showMyCards(chatId);
+                        showMyCards(chatId, false);
                         chatState = ServiceState.DEFAULT_STATE;
                         break;
                     case "/mycategories":
@@ -190,7 +191,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     case "/newchance":
                         log.info("Building new cashback chance");
                         prepareAndSendMessage(chatId, "Выберите карту");
-                        showMyCards(chatId);
+                        showMyCards(chatId, true);
                         chatState = ServiceState.NEW_CHANCE__AWAITING_BANK_CARD_ID;
                         log.info("Waiting for bank card id...");
 //                        prepareAndSendMessage(chatId, "Введите дату начала действия кешбека");
@@ -248,7 +249,17 @@ public class TelegramBot extends TelegramLongPollingBot {
                             case EDIT_BANK_CARD__AWAITING_BANK_CARD_NAME:
                                 newCardName = update.getMessage().getText();
                                 chatState = ServiceState.DEFAULT_STATE;
-                                saveCardToDb(chatId, false, BankCardId);
+                                saveCardToDb(chatId, false, bankCardId);
+
+                                showMenu(chatId, "Главное меню", Constants.mainMenuList);
+                                chatState = ServiceState.DEFAULT_STATE;
+
+                                break;
+
+                            case EDIT_CAT__AWAITING_CAT_NAME:
+                                newCategoryName = update.getMessage().getText();
+                                chatState = ServiceState.DEFAULT_STATE;
+                                saveCategoryToDb(chatId, false, categoryId);
 
                                 showMenu(chatId, "Главное меню", Constants.mainMenuList);
                                 chatState = ServiceState.DEFAULT_STATE;
@@ -257,7 +268,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                             case NEW_CATEGORY__AWAITING_CATEGORY_NAME:
                                 newCategoryName = update.getMessage().getText();
                                 chatState = ServiceState.DEFAULT_STATE;
-                                saveNewCategoryToDb(chatId);
+                                saveCategoryToDb(chatId,true,0L);
+                                prepareAndSendMessage(chatId, "Категория успешно создана");
+                                showCategoriesMenu(chatId, 2000);
                                 break;
                             case NEW_CHANCE__AWAITING_BANK_CARD_ID:
                                 String bankCardId = update.getMessage().getText();
@@ -302,18 +315,24 @@ public class TelegramBot extends TelegramLongPollingBot {
                                 String categoryId2 = update.getMessage().getText();
                                 Optional<CbCategory> cbCategory1 = cbCategoryRepository.findById(Long.valueOf(categoryId2));
                                 CbCategory cbCategory2 = cbCategory1.get();
-                                showMyChancesOfCategory(chatId, cbCategory2, false);
+                                showMyChancesOfCategory(chatId, cbCategory2.getName(), false);
                                 chatState = ServiceState.DEFAULT_STATE;
                                 break;
                             case ALL_CHANCES_ACTIVE__AWAITING_CATEGORY_ID:
                                 String categoryId3 = update.getMessage().getText();
                                 Optional<CbCategory> cbCategory3 = cbCategoryRepository.findById(Long.valueOf(categoryId3));
                                 CbCategory cbCategory4 = cbCategory3.get();
-                                showMyChancesOfCategory(chatId, cbCategory4, true);
+                                showMyChancesOfCategory(chatId, cbCategory4.getName(), true);
                                 chatState = ServiceState.DEFAULT_STATE;
                                 break;
-
-
+                            case DELETE_CHANCE__AWAITING_CHANCE_ID:
+                                cbChanceId = Long.valueOf(update.getMessage().getText());
+                                log.info("Deleting Chance...");
+                                deleteCbChance(cbChanceId);
+                                prepareAndSendMessage(chatId, "Кэшбек удален из базы данных");
+                                chatState = ServiceState.DEFAULT_STATE;
+                                showChancesMenu(chatId, 2000);
+                                break;
                             default:
                                 prepareAndSendMessage(chatId, "Sorry, command was not recognized");
                                 chatState = ServiceState.DEFAULT_STATE;
@@ -331,15 +350,14 @@ public class TelegramBot extends TelegramLongPollingBot {
             executeEditMessageText(text, chatId, messageId);
 
             //      String to enum
-//            MenuButtons menuButtons = MenuButtons.valueOf(callbackData);
             MenuOption menuOption = callbackParser(callbackData);
 
             switch (menuOption.getMenuButton()) {
                 case MAINMENU_MYCASHBACK:
-                    showMyChances(chatId);
+                    showMenu(chatId, "Мой кэшбэк", Constants.chancesMenuList);
                     break;
                 case MAINMENU_MYCARDS:
-                    showMenu(chatId, "Мои карты", Constants.cardMenuList);
+                    showCardsMenu(chatId, 0);
                     break;
                 case MAINMENU_MYCATEGORIES:
                     showMenu(chatId, "Мои категории", Constants.categoryMenuList);
@@ -347,9 +365,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case ALLMENU_TOMAINMENU:
                     showMenu(chatId, "Главное меню", Constants.mainMenuList);
                     break;
-                case CARDSMENU_MYCARDS:
-                    showMyCards(chatId);
-                    showMenu(chatId, "Мои банковские карты", Constants.cardMenuList);
+                case CARDSMENU_ALLMYCARDS:
+                    showMyCards(chatId, false);
+                    showCardsMenu(chatId, 2000);
                     break;
                 case CARDSMENU_NEWCARD:
 //                  TODO refactor. DRY
@@ -360,26 +378,26 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 case CARDSMENU_EDITCARD:
                     log.info("Editing bank card...");
-                    List cardList = getMyCardsList(chatId);
-                    List menuOptionList = menuBuilder(cardList, MenuButtons.CARDSMENU_EDITCARD_ANYCARD);
-                    showMenu(chatId, "Выберите карту", menuOptionList);
+                    showMenu(chatId, "Выберите карту",
+                            cardMenuBuilder(getMyCardsList(chatId),
+                                    MenuButtons.CARDSMENU_EDITCARD_ANYCARD));
                     break;
                 case CARDSMENU_EDITCARD_ANYCARD:
                     prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
 //                    showMyCard(chatId, menuOption.getOptionName());
-                    BankCardId = getMyCardId(chatId, menuOption.getOptionName());
+                    bankCardId = getMyCardId(chatId, menuOption.getOptionName());
                     log.info("Editing bank card...");
                     prepareAndSendMessage(chatId, "Введите новое название банка");
                     chatState = ServiceState.EDIT_BANK_CARD__AWAITING_BANK_NAME;
                     break;
                 case CARDSMENU_DELETECARD:
-                    List cardList1 = getMyCardsList(chatId);
-                    List menuOptionList1 = menuBuilder(cardList1, MenuButtons.CARDSMENU_DELETECARD_ANYCARD);
-                    showMenu(chatId, "Выберите карту", menuOptionList1);
+                    showMenu(chatId,
+                            "Выберите карту",
+                            cardMenuBuilder(getMyCardsList(chatId), MenuButtons.CARDSMENU_DELETECARD_ANYCARD));
                     break;
                 case CARDSMENU_DELETECARD_ANYCARD:
                     prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
-                    BankCardId = getMyCardId(chatId, menuOption.getOptionName());
+                    bankCardId = getMyCardId(chatId, menuOption.getOptionName());
 
 
                     showMenu(chatId, "Будет удалена карта " + menuOption.getOptionName() + " со всеми кешбеками. \n" +
@@ -396,28 +414,184 @@ public class TelegramBot extends TelegramLongPollingBot {
                     switch (choiceForEnum) {
                         case DELETE_BANK_CARD:
                             log.info("Deleting bank card...");
-                            deleteBankCard(BankCardId);
+                            deleteBankCard(bankCardId);
                             prepareAndSendMessage(chatId, "Карта удалена из базы данных");
                             break;
                         case DELETE_CATEGORY:
-                            //TODO
+                            log.info("Deleting category...");
+                            deleteCategory(categoryId);
+                            prepareAndSendMessage(chatId, "Категория удалена из базы данных");
                             break;
                         case DELETE_CHANCE:
                             //TODO
                             break;
                     }
-                    showMenu(chatId, "Главное меню", Constants.mainMenuList);
+                    showMainMenu(chatId, 2000);
                     break;
+
+                case CATMENU_MYCATS:
+                    showMyCategories(chatId);
+                    showCategoriesMenu(chatId, 2000);
+                    break;
+
+                case CATMENU_NEWCAT:
+                    log.info("Building new category...");
+                    prepareAndSendMessage(chatId, "Введите название категории");
+                    chatState = ServiceState.NEW_CATEGORY__AWAITING_CATEGORY_NAME;
+                    log.info("Waiting for category name...");
+                    break;
+
+                case CATMENU_EDITCAT:
+                    log.info("Editing category...");
+                    showMenu(chatId, "Выберите категорию",
+                            categoryMenuBuilder(getMyCategoriesList(chatId),
+                                    MenuButtons.CATMENU_EDITCAT_ANYCAT));
+                    break;
+                case CATMENU_EDITCAT_ANYCAT:
+                    prepareAndSendMessage(chatId, "Выбрана категория " + menuOption.getOptionName());
+                    categoryId = getMyCategoryId(chatId, menuOption.getOptionName());
+                    log.info("Editing category card...");
+                    prepareAndSendMessage(chatId, "Введите новое название категории");
+                    chatState = ServiceState.EDIT_CAT__AWAITING_CAT_NAME;
+                    break;
+
+                case CATMENU_DELETECAT:
+                    showMenu(chatId,
+                            "Выберите категорию",
+                            categoryMenuBuilder(getMyCategoriesList(chatId), MenuButtons.CATMENU_DELETECAT_ANYCAT));
+                    break;
+                case CATMENU_DELETECAT_ANYCAT:
+                    prepareAndSendMessage(chatId, "Выбрана категория " + menuOption.getOptionName());
+                    categoryId = getMyCategoryId(chatId, menuOption.getOptionName());
+
+                    showMenu(chatId, "Будет удалена категория " + menuOption.getOptionName() + " со всеми кешбеками. \n" +
+                            "Эту операцию нельзя отменить. Вы уверены?", choiceMenuList);
+                    choiceForEnum = DELETE_CATEGORY;
+                    break;
+
+                case CHANCES_ACTCHANCES_CAT:
+                    showMenu(chatId, "Выберите категорию",
+                            categoryMenuBuilder(getMyCategoriesList(chatId), MenuButtons.ACTCHANCES_CAT_CHOSEN));
+                    break;
+
+                case ACTCHANCES_CAT_CHOSEN:
+                    categoryId = getMyCategoryId(chatId, menuOption.getOptionName());
+                    showMyChancesOfCategory(chatId, menuOption.getOptionName(), true);
+                    showChancesMenu(chatId, 2000);
+                    break;
+
+
+                case CHANCES_ACTCHANCES_CARD:
+                    showMenu(chatId, "Выберите карту",
+                            cardMenuBuilder(getMyCardsList(chatId), MenuButtons.ACTCHANCES_CARD_CHOSEN));
+                    break;
+
+                case ACTCHANCES_CARD_CHOSEN:
+                    bankCardId = getMyCardId(chatId, menuOption.getOptionName());
+                    showMyChancesOfCard(chatId, menuOption.getOptionName(), true, false);
+                    showChancesMenu(chatId, 2000);
+                    break;
+
+                case CHANCESMENU_NEWCHANCE:
+
+                    showMenu(chatId, "Выберите карту",
+                            cardMenuBuilder(getMyCardsList(chatId),
+                                    MenuButtons.NEWCHANCE_ANYCARD));
+                    break;
+
+                case NEWCHANCE_ANYCARD:
+                    prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
+                    Optional<BankCard> tempBankCard = bankCardRepository.findById(getMyCardId(chatId, menuOption.getOptionName()));
+                    bankCardForNewChance = tempBankCard.get();
+
+                    showMenu(chatId, "Выберите категорию",
+                            categoryMenuBuilder(getMyCategoriesList(chatId),
+                                    MenuButtons.NEWCHANCE_ANYCAT));
+                    break;
+
+                case NEWCHANCE_ANYCAT:
+                    prepareAndSendMessage(chatId, "Выбрана категория " + menuOption.getOptionName());
+                    Optional<CbCategory> tempCbCategory = cbCategoryRepository.findById(getMyCategoryId(chatId, menuOption.getOptionName()));
+                    categoryForNewChance = tempCbCategory.get();
+
+                    prepareAndSendMessage(chatId, "Введите % кэшбека");
+                    chatState = ServiceState.NEW_CHANCE__AWAITING_RATE;
+                    break;
+
+//                To develop edit CbChance later. For this time only delete is available
+
+//                case CHANCESMENU_EDITCHANCE:
+//                    prepareAndSendMessage(chatId, "Выберите карту");
+//                    showMenu(chatId, "Выберите карту, по которой нужно изменить кэшбек",
+//                            cardMenuBuilder(getMyCardsList(chatId),
+//                                    MenuButtons.EDITCHANCE_ANYCARD));
+//                    break;
+//
+//                case EDITCHANCE_ANYCARD:
+//                    prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
+//                    bankCardForNewChance = bankCardRepository.findById(getMyCardId(chatId, menuOption.getOptionName())).get();
+//
+//                    showMenu(chatId, "Выберите кэшбек, который нужно изменить",
+//                            cbChanceMenuBuilder(getMyCbChancesList(chatId),
+//                                    MenuButtons.EDITCHANCE_ANYCHANCE));
+//                    break;
+                case CHANCESMENU_DELETECHANCE:
+                    prepareAndSendMessage(chatId, "Выберите карту");
+                    showMenu(chatId, "Выберите карту, по которой нужно удалить кэшбек",
+                            cardMenuBuilder(getMyCardsList(chatId),
+                                    MenuButtons.DELETECHANCE_ANYCARD));
+                    break;
+
+                case DELETECHANCE_ANYCARD:
+                    prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
+                    bankCardId = getMyCardId(chatId, menuOption.getOptionName());
+                    prepareAndSendMessage(chatId, "Весь ваш действующий кэшбек по карте.\n" +
+                            "Введите Id номер кэшбека, который хотите удалить:");
+                    showMyChancesOfCard(chatId, menuOption.getOptionName(), true, true);
+                    chatState = ServiceState.DELETE_CHANCE__AWAITING_CHANCE_ID;
+                    break;
+
+
                 default:
                     break;
             }
-
-            try {
-                execute(message);
-            } catch (TelegramApiException e) {
-                log.error("Error occured: " + e.getMessage());
-            }
         }
+    }
+
+    private void showChancesMenu(long chatId,int delayTime) {
+        try {
+            Thread.sleep(delayTime);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        showMenu(chatId, "Мой кэшбэк", Constants.chancesMenuList);
+    }
+
+    private void showCardsMenu(long chatId, int delayTime) {
+        try {
+            Thread.sleep(delayTime);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        showMenu(chatId, "Банковские карты", Constants.cardMenuList);
+    }
+
+    private void showCategoriesMenu(long chatId, int delayTime) {
+        try {
+            Thread.sleep(delayTime);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        showMenu(chatId, "Категории кэшбека", categoryMenuList);
+    }
+
+    private void showMainMenu(long chatId, int delayTime) {
+        try {
+            Thread.sleep(delayTime);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        showMenu(chatId, "Главное меню", mainMenuList);
     }
 
     private void deleteBankCard(Long bankCardId) {
@@ -425,45 +599,67 @@ public class TelegramBot extends TelegramLongPollingBot {
         log.info("BankCard with ID " + bankCardId + " deleted from db");
     }
 
-    private List<MenuOption> menuBuilder(List<BankCard> bankCardList, MenuButtons menuButtons) {
+    private void deleteCategory(Long categoryId) {
+        cbCategoryRepository.deleteById(categoryId);
+        log.info("Category with ID " + categoryId + " deleted from db");
+    }
+
+    private void deleteCbChance(Long cbChanceId) {
+        cbChanceRepository.deleteById(cbChanceId);
+        log.info("Chance with ID " + cbChanceId + " deleted from db");
+    }
+
+    /**
+     * Builds list of MenuOptions which is required to show inline menu
+     *
+     * @param bankCardList - list of bank cards
+     * @param menuButtons  - special reply signal for each button in menu. Used to determine that button of this menu
+     *                     is pressed
+     * @return list of MenuOptions which is required to show inline menu
+     */
+    private List<MenuOption> cardMenuBuilder(List<BankCard> bankCardList, MenuButtons menuButtons) {
         List<MenuOption> resultList = new ArrayList<>();
         for (BankCard bankCard : bankCardList) {
-            MenuOption menuOption = new MenuOption(bankCard.getCardName(), menuButtons);
+            MenuOption menuOption = new MenuOption(bankCard.getName(), menuButtons);
             resultList.add(menuOption);
         }
         return resultList;
     }
 
-    private void saveNewCategoryToDb(long chatId) {
-        Optional<User> optionalUser = userRepository.findById(chatId);
-        // todo add presence check
-        User user = optionalUser.get();
-        // todo check if card already registered
-        CbCategory newCbCategory = new CbCategory();
-        newCbCategory.setUser(user);
-        newCbCategory.setName(newCategoryName);
-
-        cbCategoryRepository.save(newCbCategory);
-        log.info("Category saved to db " + newCbCategory);
-        prepareAndSendMessage(chatId, "Категория сохранена: " + newCbCategory);
+    private List<MenuOption> categoryMenuBuilder(List<CbCategory> cbCategoryList, MenuButtons menuButtons) {
+        List<MenuOption> resultList = new ArrayList<>();
+        for (CbCategory cbCategory : cbCategoryList) {
+            MenuOption menuOption = new MenuOption(cbCategory.getName(), menuButtons);
+            resultList.add(menuOption);
+        }
+        return resultList;
     }
 
-    private void showMyCards(long chatId) {
+    private List<MenuOption> cbChanceMenuBuilder(List<CbChance> cbChanceList, MenuButtons menuButtons) {
+        List<MenuOption> resultList = new ArrayList<>();
+        for (CbChance cbChance : cbChanceList) {
+            MenuOption menuOption = new MenuOption(cbChance.shortToString(), menuButtons);
+            resultList.add(menuOption);
+        }
+        return resultList;
+    }
+    private void showMyCards(long chatId, boolean showWithId) {
         Iterable<BankCard> bankCardList = bankCardRepository.findAll();
-        String bankCardString = "";
+        StringBuilder bankCardString = new StringBuilder();
         for (BankCard bankCard : bankCardList) {
             if (bankCard.getUser().getChatId().equals(chatId)) {
-                bankCardString += bankCard.toString() + "\n";
+                if (!showWithId) bankCardString.append(bankCard).append("\n");
+                if (showWithId) bankCardString.append(bankCard.getCardId().toString()).append(bankCard).append("\n");
             }
         }
-        prepareAndSendMessage(chatId, bankCardString);
+        prepareAndSendMessage(chatId, bankCardString.toString());
     }
 
     private void showMyCard(long chatId, String cardName) {
         Iterable<BankCard> bankCardList = bankCardRepository.findAll();
         String bankCardString = "";
         for (BankCard bankCard : bankCardList) {
-            if (bankCard.getUser().getChatId().equals(chatId) && bankCard.getCardName().equals(cardName)) {
+            if (bankCard.getUser().getChatId().equals(chatId) && bankCard.getName().equals(cardName)) {
                 bankCardString += bankCard.toString() + "\n";
             }
         }
@@ -474,19 +670,52 @@ public class TelegramBot extends TelegramLongPollingBot {
         Iterable<BankCard> bankCardList = bankCardRepository.findAll();
         Long bankCardId = null;
         for (BankCard bankCard : bankCardList) {
-            if (bankCard.getUser().getChatId().equals(chatId) && bankCard.getCardName().equals(cardName)) {
+            if (bankCard.getUser().getChatId().equals(chatId) && bankCard.getName().equals(cardName)) {
                 bankCardId = bankCard.getCardId();
             }
         }
         return bankCardId;
     }
 
-    private List getMyCardsList(long chatId) {
+    private Long getMyCategoryId(long chatId, String categoryName) {
+        Iterable<CbCategory> categoryList = cbCategoryRepository.findAll();
+        Long categoryId = null;
+        for (CbCategory cbCategory : categoryList) {
+            if (cbCategory.getUser().getChatId().equals(chatId) && cbCategory.getName().equals(categoryName)) {
+                categoryId = cbCategory.getCbCategoryId();
+            }
+        }
+        return categoryId;
+    }
+
+    private List<BankCard> getMyCardsList(long chatId) {
         Iterable<BankCard> bankCardList = bankCardRepository.findAll();
         List<BankCard> resultList = new ArrayList<>();
         for (BankCard bankCard : bankCardList) {
             if (bankCard.getUser().getChatId().equals(chatId)) {
                 resultList.add(bankCard);
+            }
+        }
+        return resultList;
+    }
+
+    private List<CbCategory> getMyCategoriesList(long chatId) {
+        Iterable<CbCategory> cbCategoriesList = cbCategoryRepository.findAll();
+        List<CbCategory> resultList = new ArrayList<>();
+        for (CbCategory cbCategory : cbCategoriesList) {
+            if (cbCategory.getUser().getChatId().equals(chatId)) {
+                resultList.add(cbCategory);
+            }
+        }
+        return resultList;
+    }
+
+    private List<CbChance> getMyCbChancesList(long chatId) {
+        Iterable<CbChance> cbChancesList = cbChanceRepository.findAll();
+        List<CbChance> resultList = new ArrayList<>();
+        for (CbChance cbChance : cbChancesList) {
+            if (cbChance.getUser().getChatId().equals(chatId)) {
+                resultList.add(cbChance);
             }
         }
         return resultList;
@@ -544,6 +773,11 @@ public class TelegramBot extends TelegramLongPollingBot {
             var tempButton = new InlineKeyboardButton();
 
             tempButton.setText(menuOption.getOptionName());
+            // TODO Problem is here. callback data is limited to 64 characters
+            /* callback consists of
+            1) .getOptionName() - usually a name which is used as an identifier to understand which object is chosen
+            2) .menuButton.name() - a constant which is used to understand in which menu button is pressed
+             */
             tempButton.setCallbackData(menuOption.getOptionName() + DELIMETER + menuOption.menuButton.name());
             inlineRowButtonList.add(tempButton);
             inlineRowsList.add(inlineRowButtonList);
@@ -600,7 +834,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         prepareAndSendMessage(chatId, s);
     }
 
-    private void showMyChancesOfCategory(long chatId, CbCategory cbCategory, boolean isActive) {
+    private void showMyChancesOfCategory(long chatId, String categoryName, boolean isActive) {
         Iterable<CbChance> cbChances = cbChanceRepository.findAll();
         String s = "";
         for (CbChance cbChance : cbChances) {
@@ -610,12 +844,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                     LocalDate todayDate = LocalDate.now();
                     if (cbChance.getEndDate().isAfter(todayDate.minusDays(1)) &&
                             cbChance.getStartDate().isBefore(todayDate.plusDays(1))) {
-                        if (cbChance.getCbCategory().getName().equals(cbCategory.getName())) {
+                        if (cbChance.getCbCategory().getName().equals(categoryName)) {
                             s += cbChance.toString() + "\n";
                         }
                     }
                 } else {
-                    if (cbChance.getCbCategory().getName().equals(cbCategory.getName())) {
+                    if (cbChance.getCbCategory().getName().equals(categoryName)) {
                         s += cbChance.toString() + "\n";
                     }
                 }
@@ -627,6 +861,37 @@ public class TelegramBot extends TelegramLongPollingBot {
         prepareAndSendMessage(chatId, s);
     }
 
+    private void showMyChancesOfCard(long chatId, String cardName, boolean isActive, boolean showWithId) {
+        Iterable<CbChance> cbChances = cbChanceRepository.findAll();
+        StringBuilder s = new StringBuilder();
+        for (CbChance cbChance : cbChances) {
+            if (cbChance.getUser().getChatId().equals(chatId)) {
+
+
+                if (isActive) {
+                    LocalDate todayDate = LocalDate.now();
+                    if (cbChance.getEndDate().isAfter(todayDate.minusDays(1)) &&
+                            cbChance.getStartDate().isBefore(todayDate.plusDays(1))) {
+                        if (cbChance.getBankCard().getName().equals(cardName)) {
+                            if (showWithId) s.append(cbChance.getCbChanceId() + cbChance.toString()).append("\n");
+                            if (!showWithId) s.append(cbChance.toString()).append("\n");
+                        }
+                    } else {
+                        if (cbChance.getBankCard().getName().equals(cardName)) {
+                            if (showWithId) s.append(cbChance.getCbChanceId() + cbChance.toString()).append("\n");
+                            if (!showWithId) s.append(cbChance.toString()).append("\n");
+                        }
+                    }
+                }
+            }
+        }
+        if (s.toString().equals("")) {
+            s = new StringBuilder("Записей не найдено!");
+        }
+        prepareAndSendMessage(chatId, s.toString());
+
+    }
+
     private void saveCardToDb(long chatId, boolean isNew, long bankCardId) {
         Optional<User> optionalUser = userRepository.findById(chatId);
         // todo add presence check
@@ -634,7 +899,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         // todo check if card already registered
         BankCard newBankCard = new BankCard();
         newBankCard.setBankName(newBankName);
-        newBankCard.setCardName(newCardName);
+        newBankCard.setName(newCardName);
         newBankCard.setUser(user);
         if (!isNew) {
             newBankCard.setCardId(bankCardId);
@@ -644,6 +909,21 @@ public class TelegramBot extends TelegramLongPollingBot {
         prepareAndSendMessage(chatId, "Карта сохранена: " + newBankCard);
     }
 
+    private void saveCategoryToDb(long chatId, boolean isNew, long categoryId) {
+        Optional<User> optionalUser = userRepository.findById(chatId);
+        // todo add presence check
+        User user = optionalUser.get();
+        // todo check if card already registered
+        CbCategory newCbCategory = new CbCategory();
+        newCbCategory.setName(newCategoryName);
+        newCbCategory.setUser(user);
+        if (!isNew) {
+            newCbCategory.setCbCategoryId(categoryId);
+        }
+        cbCategoryRepository.save(newCbCategory);
+        log.info("Category saved to db " + newCbCategory);
+        prepareAndSendMessage(chatId, "Категория сохранена: " + newCbCategory);
+    }
     private void saveNewChancetoDb(long chatId) {
         Optional<User> optionalUser = userRepository.findById(chatId);
         // todo add presence check
@@ -663,9 +943,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         cbChanceRepository.save(newCbChance);
         log.info("Chance saved to db " + newCbChance);
         prepareAndSendMessage(chatId, "Кешбек сохранен: " + newCbChance);
-    }
-
-    private void myCardsOptions() {
     }
 
     //    stub demo method without real registration

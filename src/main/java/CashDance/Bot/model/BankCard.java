@@ -16,7 +16,7 @@ public class BankCard {
 
     @Override
     public String toString() {
-        return cardName +" "+ bankName +" "+ cardId;
+        return cardName +" "+ bankName;
     }
 
     @ManyToOne
@@ -53,11 +53,11 @@ public class BankCard {
 
     }
 
-    public String getCardName() {
+    public String getName() {
         return cardName;
     }
 
-    public void setCardName(String cardName) {
+    public void setName(String cardName) {
         this.cardName = cardName;
     }
 

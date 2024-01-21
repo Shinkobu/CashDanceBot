@@ -15,9 +15,9 @@ public class Constants {
         add(yesNoMenu_No);
     }};
 
-    static final MenuOption mainMenu_CashbackOfCategory = new MenuOption("Кешбек по категории", MenuButtons.MAINMENU_MYCASHBACK);
+    static final MenuOption mainMenu_CashbackOfCategory = new MenuOption("Мой кэшбэк", MenuButtons.MAINMENU_MYCASHBACK);
     static final MenuOption mainMenu_MyCards = new MenuOption("Мои банковские карты", MenuButtons.MAINMENU_MYCARDS);
-    static final MenuOption mainMenu_MyCategories = new MenuOption("Мои категории кешбека", MenuButtons.MAINMENU_MYCATEGORIES);
+    static final MenuOption mainMenu_MyCategories = new MenuOption("Мои категории кэшбэка", MenuButtons.MAINMENU_MYCATEGORIES);
     static final MenuOption allMenu_ToMainMenu = new MenuOption("В главное меню", MenuButtons.ALLMENU_TOMAINMENU);
 
 
@@ -27,9 +27,25 @@ public class Constants {
         add(mainMenu_MyCategories);
     }};
 
-    static final MenuOption cardsMenu_MyCards = new MenuOption("Мои карты", MenuButtons.CARDSMENU_MYCARDS);
+    static final MenuOption chancesMenu_ActualChancesOfCategory = new MenuOption("Кэшбэк по категории", MenuButtons.CHANCES_ACTCHANCES_CAT);
+    static final MenuOption chancesMenu_ActualChancesOfCard = new MenuOption("Кэшбэк по карте", MenuButtons.CHANCES_ACTCHANCES_CARD);
+    static final MenuOption chancesMenu_NewChance = new MenuOption("Новый кэшбэк", MenuButtons.CHANCESMENU_NEWCHANCE);
+    static final MenuOption chancesMenu_EditChance = new MenuOption("Изменить кэшбэк", MenuButtons.CHANCESMENU_EDITCHANCE);
+    static final MenuOption chancesMenu_DeleteChance = new MenuOption("Удалить кэшбэк", MenuButtons.CHANCESMENU_DELETECHANCE);
+
+    static List<MenuOption> chancesMenuList = new ArrayList<>() {{
+        add(chancesMenu_ActualChancesOfCategory);
+        add(chancesMenu_ActualChancesOfCard);
+        add(chancesMenu_NewChance);
+//        add(chancesMenu_EditChance);
+        add(chancesMenu_DeleteChance);
+        add(allMenu_ToMainMenu);
+    }};
+
+
+    static final MenuOption cardsMenu_MyCards = new MenuOption("Мои карты", MenuButtons.CARDSMENU_ALLMYCARDS);
     static final MenuOption cardsMenu_NewCard = new MenuOption("Новая карта", MenuButtons.CARDSMENU_NEWCARD);
-    static final MenuOption cardsMenu_EditCard = new MenuOption("Редактировать карту", MenuButtons.CARDSMENU_EDITCARD);
+    static final MenuOption cardsMenu_EditCard = new MenuOption("Изменить карту", MenuButtons.CARDSMENU_EDITCARD);
     static final MenuOption cardsMenu_DeleteCard = new MenuOption("Удалить карту", MenuButtons.CARDSMENU_DELETECARD);
 
 
@@ -40,11 +56,13 @@ public class Constants {
         add(cardsMenu_DeleteCard);
         add(allMenu_ToMainMenu);
     }};
-    
-    static final MenuOption categoriesMenu_MyCategories = new MenuOption("Мои категории", MenuButtons.CATEGORIESMENU_MYCATEGORIES);
-    static final MenuOption categoriesMenu_NewCategory = new MenuOption("Новая категория", MenuButtons.CATEGORIESMENU_NEWCARD);
-    static final MenuOption categoriesMenu_EditCategory = new MenuOption("Редактировать категорию", MenuButtons.CATEGORIESMENU_EDITCATEGORY);
-    static final MenuOption categoriesMenu_DeleteCategory = new MenuOption("Удалить категорию", MenuButtons.CATEGORIESMENU_DELETECATEGORY);
+
+
+
+    static final MenuOption categoriesMenu_MyCategories = new MenuOption("Мои категории", MenuButtons.CATMENU_MYCATS);
+    static final MenuOption categoriesMenu_NewCategory = new MenuOption("Новая категория", MenuButtons.CATMENU_NEWCAT);
+    static final MenuOption categoriesMenu_EditCategory = new MenuOption("Изменить категорию", MenuButtons.CATMENU_EDITCAT);
+    static final MenuOption categoriesMenu_DeleteCategory = new MenuOption("Удалить категорию", MenuButtons.CATMENU_DELETECAT);
 
 
     static List<MenuOption> categoryMenuList = new ArrayList<>() {{
