@@ -1,10 +1,4 @@
 package CashDance.Bot.service;
 
-
-
-public class Methods {
-
-
-
-
+public class MenuMethods {
 }
