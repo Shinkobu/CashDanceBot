@@ -8,7 +8,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "bank_cards_table")
-public class BankCard {
+public class BankCard extends CashbackEntity {
 
     private String cardName;
     private String bankName;

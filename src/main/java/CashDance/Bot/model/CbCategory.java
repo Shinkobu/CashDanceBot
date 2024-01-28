@@ -8,7 +8,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "cashback_categories_table")
-public class CbCategory {
+public class CbCategory extends CashbackEntity{
     private String name;
 
     @ManyToOne

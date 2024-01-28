@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "cashback_chances_table")
-public class CbChance {
+public class CbChance extends CashbackEntity{
 
     SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
 

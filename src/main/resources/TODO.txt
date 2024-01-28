@@ -3,23 +3,27 @@
 
 DONE simple button - to main menu
 TODO date input
-TODO buttons always on top
-TODO add useful buttons always on top
 TODO cards, categories from id to buttons
-TODO when select card during new chance show name of chosen card + category etc
+DONE when select card during new chance show name of chosen card + category etc
 DONE cards add, delete, edit
 DONE categories add, delete, edit
 DONE chances add, delete
 TODO chances edit
 DONE greet and help
-TODO commands list
-TODO menus
-TODO [CashDanceBot Telegram Executor] ERROR CashDance.Bot.service.TelegramBot - Error occured: ChatId parameter can't be empty if inlineMessageId is not present
+DONE commands list
+DONE menus
+DONE [CashDanceBot Telegram Executor] ERROR CashDance.Bot.service.TelegramBot - Error occured: ChatId parameter can't be empty if inlineMessageId is not present
 DONE all users can see all chances and categories
-TODO no duplicates by name for one user - for cards, categories, chances  {{{{{{{{{{ in progress
+*DONE no duplicates by name for one user - for cards, categories, chances
 DONE actual cashback chances
-TODO back button in all menus
-TODO isPresent Check in all .get
+DONE back button in all menus
+*TODO isPresent Check in all .get
 PROBLEM 18:17:53.655 [CashDanceBot Telegram Executor] ERROR CashDance.Bot.service.TelegramBot - Error occurred: Error sending message: [400] Bad Request: BUTTON_DATA_INVALID
-TODO DRY saveCardToDb and saveCategorytoDb
-TODO tests on test database
+*DONE DRY saveCardToDb and saveCategorytoDb {{{{{{{{{{ in progress
+*TODO tests on test database
+*TODO HUGE MIGRATION TO OTHER CLASSES Method to class
+*TODO Exceptions
+*TODO refactor save bankcardto db and cat too
+*DONE Log to file
+*DONE Log messages in code
+TODO ref saveNewChancetoDb

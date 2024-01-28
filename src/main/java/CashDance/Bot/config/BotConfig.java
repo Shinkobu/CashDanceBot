@@ -23,33 +23,18 @@ public class BotConfig {
     @Value("${bot.owner}")
     Long ownerId;
 
-    public BotConfig(String botName, String token, Long ownerId) {
-        this.botName = botName;
-        this.token = token;
-        this.ownerId = ownerId;
-    }
+    @Value("${bot.version}")
+    String version;
 
     public String getBotName() {
         return botName;
     }
-
-    public void setBotName(String botName) {
-        this.botName = botName;
-    }
-
     public String getToken() {
         return token;
     }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
     public Long getOwnerId() {
         return ownerId;
     }
+    public String getVersion() {return version;}
 
-    public void setOwnerId(Long ownerId) {
-        this.ownerId = ownerId;
-    }
 }

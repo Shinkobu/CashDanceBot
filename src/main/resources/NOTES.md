@@ -3,9 +3,11 @@
 Первый вариант (через службу). Пробовал на Ubuntu на локальной виртуальной машине
 https://www.youtube.com/watch?v=b9iyMR48zCQ&t=1410s
 
-1) Сформировать jar файл с помощью maven
-2) С помощью WinSCP скопировать файл в Ubuntu в каталог home/alex/JavaTest/mySimpleTelegramBot.jar
-3) Создать службу MySimpleTelegramBot.service в каталоге /etc/systemd/system
+1) В файле token.properties переключить токен на нужного бота
+2) Сформировать jar файл с помощью maven
+3) С помощью WinSCP скопировать файл в Ubuntu в каталог /opt/bots/
+                                                        home/alex/JavaTest/mySimpleTelegramBot.jar
+4) Создать службу MySimpleTelegramBot.service в каталоге /etc/systemd/system
 
 Содержание файла:
 

@@ -10,19 +10,19 @@
     </appender>
 
 <!--    place on linux where log will be stored-->
-    <property name="HOME_LOG" value="/var/log/mySimpleTelegramBot/app.log"/>
+    <property name="HOME_LOG" value="/var/log/CashDanceBot/app.log"/>
 <!--file-rolling means add new logs to file-->
     <appender name="FILE-ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${HOME_LOG}</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/proj3ct.io/tg-simple-bot/app.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <fileNamePattern>/var/log/CashDanceBot/Archived/app.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
             <!-- each archived file, size max 10MB -->
             <maxFileSize>10MB</maxFileSize>
             <!-- total size of all archive files, if total size > 20GB, it will delete old archived file -->
-            <totalSizeCap>1GB</totalSizeCap>
+            <totalSizeCap>100MB</totalSizeCap>
             <!-- 60 days to keep -->
-            <maxHistory>60</maxHistory>
+            <maxHistory>120</maxHistory>
         </rollingPolicy>
 
         <encoder>
@@ -30,7 +30,7 @@
         </encoder>
     </appender>
 
-    <logger name="mySimpleTelegramBot" level="debug" additivity="false">
+    <logger name="CashDanceLogger" level="debug" additivity="false">
         <appender-ref ref="FILE-ROLLING"/>
         <appender-ref ref="CONSOLE"/>
     </logger>
