@@ -8,7 +8,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "bank_cards_table")
-public class BankCard extends CashbackEntity {
+public class BankCard extends CashbackEntity implements Comparable<BankCard>{
 
     private String cardName;
     private String bankName;
@@ -83,5 +83,10 @@ public class BankCard extends CashbackEntity {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    @Override
+    public int compareTo(BankCard o) {
+        return this.getName().compareTo(o.getName());
     }
 }

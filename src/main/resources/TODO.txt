@@ -23,7 +23,8 @@ PROBLEM 18:17:53.655 [CashDanceBot Telegram Executor] ERROR CashDance.Bot.servic
 *TODO tests on test database
 *TODO HUGE MIGRATION TO OTHER CLASSES Method to class
 *TODO Exceptions
-*TODO refactor save bankcardto db and cat too
+*DONE refactor save bankcardto db and cat too
 *DONE Log to file
 *DONE Log messages in code
 TODO ref saveNewChancetoDb
+*TODO Cancel button when choosing card,cat or else

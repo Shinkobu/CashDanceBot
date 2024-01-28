@@ -8,7 +8,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "cashback_categories_table")
-public class CbCategory extends CashbackEntity{
+public class CbCategory extends CashbackEntity implements Comparable<CbCategory>{
     private String name;
 
     @ManyToOne
@@ -74,5 +74,10 @@ public class CbCategory extends CashbackEntity{
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @Override
+    public int compareTo(CbCategory o) {
+        return this.getName().compareTo(o.getName());
     }
 }

@@ -1,10 +1,13 @@
 package CashDance.Bot.service.old;
 
+import CashDance.Bot.model.CbCategory;
 import CashDance.Bot.model.User;
 import com.vdurmont.emoji.EmojiParser;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.ArrayList;
@@ -72,4 +75,31 @@ public class OldMethods {
 //                }
 //            } else {
 
+
+//    private void showMyCategoriesButtons(long chatId) {
+//        Iterable<CbCategory> cbCategories = cbCategoryRepository.findAll();
+//
+//        SendMessage message = new SendMessage();
+//        message.setChatId(String.valueOf(chatId));
+//        message.setText("Выберите категорию:");
+//
+//        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+//        List<List<InlineKeyboardButton>> inlineRowsList = new ArrayList<>();
+//
+//        for (CbCategory cbCategory : cbCategories) {
+//
+//            List<InlineKeyboardButton> inlineRowButtonList = new ArrayList<>();
+//            var tempButton = new InlineKeyboardButton();
+//
+//            tempButton.setText(cbCategory.getName());
+//            tempButton.setCallbackData(cbCategory.getName());
+//            inlineRowButtonList.add(tempButton);
+//            inlineRowsList.add(inlineRowButtonList);
+//        }
+//
+//        inlineKeyboardMarkup.setKeyboard(inlineRowsList);
+//
+//        message.setReplyMarkup(inlineKeyboardMarkup);
+//        executeMessage(message);
+//    }
 }
