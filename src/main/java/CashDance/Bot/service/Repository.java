@@ -1,10 +1,10 @@
 package CashDance.Bot.service;
 
 import CashDance.Bot.model.*;
-import CashDance.Bot.model.interfaces.BankCardRepository;
-import CashDance.Bot.model.interfaces.CbCategoryRepository;
-import CashDance.Bot.model.interfaces.CbChanceRepository;
-import CashDance.Bot.model.interfaces.UserRepository;
+import CashDance.Bot.model.repositories.BankCardRepository;
+import CashDance.Bot.model.repositories.CbCategoryRepository;
+import CashDance.Bot.model.repositories.CbChanceRepository;
+import CashDance.Bot.model.repositories.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updates.GetUpdates;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -51,7 +52,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static final String COMMANDS_TEXT = "Раздел в разработке";
 
     final BotConfig config;
-    private ServiceState chatState;
+    //    private ServiceState chatState;
     @Autowired
     private EntityBuilders entityBuilders;
     @Autowired
@@ -59,22 +60,24 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private Repository repository;
     private String newBankName;
-    private String newCardName;
-    private String newCategoryName;
-    private BankCard bankCardForNewChance;
-    private CbCategory categoryForNewChance;
-    private Double rateForNewChance;
-    private LocalDate startDateOfNewChance;
-    private LocalDate endDateOfNewChance;
-    private Long bankCardId;
-    private Long cbChanceId;
-    private Long categoryId;
-    private ChoiceFor choiceForEnum;
+    //    private String newCardName;
+//    private String newCategoryName;
+//    private BankCard bankCardForNewChance;
+//    private CbCategory categoryForNewChance;
+//    private Double rateForNewChance;
+//    private LocalDate startDateOfNewChance;
+//    private LocalDate endDateOfNewChance;
+//    private Long bankCardId;
+//    private Long cbChanceId;
+//    private Long categoryId;
+//    private ChoiceFor choiceForEnum;
+    private Integer number;
 
+    //        Stores temporary data for runtime purposes.
+    //        Solved the problem of multithreading.
+    private Map<Long, ChatDataHolder> chatDataHolderMap = new HashMap<>();
 
     public TelegramBot(BotConfig config) {
-
-        chatState = ServiceState.DEFAULT_STATE;
 //      configuring bot Menu in constructor
         this.config = config;
         List<BotCommand> listofCommands = new ArrayList<>();
@@ -109,139 +112,170 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
 
+
 //      1) Handling incoming message
+
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
+
+            chatDataHolderMap.putIfAbsent(chatId, new ChatDataHolder());
+
             switch (messageText) {
                 case "/start":
                     registerUser(update.getMessage());
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     showMainMenu(chatId, 0);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    ChatDataHolder chatDataHolder = chatDataHolderMap.get(chatId);
+                    chatDataHolder.setChatState(ServiceState.DEFAULT_STATE);
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/help":
                     prepareAndSendMessage(chatId, HELP_TEXT);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
+                    break;
+                case "/initnumber":
+                    number = 1;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
+                    prepareAndSendMessage(chatId, update.getUpdateId().toString());
+                    break;
+                case "/setnumber":
+                    number = 2;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
+                    break;
+                case "/getnumber":
+                    prepareAndSendMessage(chatId, number.toString());
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/register":
                     register(chatId);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    // chatState = ServiceState.DEFAULT_STATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/newcard":
                     log.info("Building new bank card...");
                     prepareAndSendMessage(chatId, "Введите название банка");
-                    chatState = ServiceState.NEW_BANK_CARD__AWAITING_BANK_NAME;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_BANK_CARD__AWAITING_BANK_NAME);
                     log.info("Waiting for bank name...");
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_BANK_CARD__AWAITING_BANK_NAME);
                     break;
                 case "/newcategory":
                     log.info("Building new category...");
                     prepareAndSendMessage(chatId, "Введите название категории");
-                    chatState = ServiceState.NEW_CATEGORY__AWAITING_CATEGORY_NAME;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CATEGORY__AWAITING_CATEGORY_NAME);
                     log.info("Waiting for category name...");
                     break;
                 case "/mycards":
                     showMyCards(chatId, false);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    // chatState = ServiceState.DEFAULT_STATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/mycategories":
                     showMyCategories(chatId);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/newchance":
                     log.info("Building new cashback chance");
                     prepareAndSendMessage(chatId, "Выберите карту");
                     showMyCards(chatId, true);
-                    chatState = ServiceState.NEW_CHANCE__AWAITING_BANK_CARD_ID;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_BANK_CARD_ID);
                     log.info("Waiting for bank card id...");
                     break;
                 case "/mychances":
                     showMyChances(chatId);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/mychancesofcategory":
                     prepareAndSendMessage(chatId, "Выберите категорию");
                     showMyCategories(chatId);
-                    chatState = ServiceState.ALL_CHANCES__AWAITING_CATEGORY_ID;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.ALL_CHANCES__AWAITING_CATEGORY_ID);
                     break;
                 case "/mychancesofcategoryactive":
                     prepareAndSendMessage(chatId, "Выберите категорию");
                     showMyCategories(chatId);
-                    chatState = ServiceState.ALL_CHANCES_ACTIVE__AWAITING_CATEGORY_ID;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.ALL_CHANCES_ACTIVE__AWAITING_CATEGORY_ID);
                     break;
                 case "/mainmenu":
                     showMenu(chatId, "Главное меню", Constants.mainMenuList);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/cardsmenu":
                     showMenu(chatId, "Мои банковские карты", Constants.cardMenuList);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/categoriesmenu":
                     showMenu(chatId, "Мои категории кешбека", Constants.categoryMenuList);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/version":
                     prepareAndSendMessage(chatId, getBotVersion());
                     showMainMenu(chatId, 2000);
-                    chatState = ServiceState.DEFAULT_STATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 default:
 
-                    switch (chatState) {
+                    switch (chatDataHolderMap.get(chatId).getChatState()) {
                         case NEW_BANK_CARD__AWAITING_BANK_NAME:
-                            newBankName = update.getMessage().getText();
-                            log.info(chatId + " Received bank name: " + newBankName);
-                            chatState = ServiceState.NEW_BANK_CARD__AWAITING_BANK_CARD_NAME;
+                            log.info(chatId + " Received bank name: " + update.getMessage().getText());
                             prepareAndSendMessage(chatId, "Введите название карты");
                             log.info(chatId + " Waiting for card name...");
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_BANK_CARD__AWAITING_BANK_CARD_NAME);
+                            chatDataHolderMap.get(chatId).setNewBankName(update.getMessage().getText());
+//                            prepareAndSendMessage(chatId, chatDataHolderMap.get(chatId).toString());
+
                             break;
                         case EDIT_BANK_CARD__AWAITING_BANK_NAME:
-                            newBankName = update.getMessage().getText();
-                            chatState = ServiceState.EDIT_BANK_CARD__AWAITING_BANK_CARD_NAME;
+                            chatDataHolderMap.get(chatId).setNewBankName(update.getMessage().getText());
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.EDIT_BANK_CARD__AWAITING_BANK_CARD_NAME);
                             prepareAndSendMessage(chatId, "Введите новое название карты");
                             break;
                         case NEW_BANK_CARD__AWAITING_BANK_CARD_NAME:
-                            newCardName = update.getMessage().getText();
-                            log.info(chatId + "Received bank card name: " + newCardName);
+                            chatDataHolderMap.get(chatId).setNewCardName(update.getMessage().getText());
+                            log.info(chatId + "Received bank card name: " + update.getMessage().getText());
+//                            TODO refactor builder
                             BankCard bankCard = entityBuilders.bankCardBuilder(repository.getUserByChatId(chatId),
-                                    newBankName, newCardName, true, 0L, this);
+                                    chatDataHolderMap.get(chatId).getNewBankName(),
+                                    chatDataHolderMap.get(chatId).getNewCardName(),
+                                    true, 0L, this);
                             if (!repository.hasCardDuplicatesInDb(chatId, bankCard)) {
                                 repository.saveBankCardToDb(bankCard);
-//                                saveBankCardToDb(bankCard);
                                 prepareAndSendMessage(bankCard.getUser().getChatId(), "Карта сохранена: " + bankCard);
                                 log.info(chatId + " Bank card saved to db - " + bankCard);
                             } else {
                                 prepareAndSendMessage(chatId, "Ошибка. Карта с таким именем уже существует!");
-                                log.info(chatId + " Bank card with the same name exists! - " + newCardName);
+                                log.info(chatId + " Bank card with the same name exists! - " + update.getMessage().getText());
                             }
                             showCardsMenu(chatId, 2000);
-                            chatState = ServiceState.DEFAULT_STATE;
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case EDIT_BANK_CARD__AWAITING_BANK_CARD_NAME:
-                            newCardName = update.getMessage().getText();
+                            chatDataHolderMap.get(chatId).setNewCardName(update.getMessage().getText());
                             BankCard bankCard1 = entityBuilders.bankCardBuilder(repository.getUserByChatId(chatId),
-                                    newBankName, newCardName, false, bankCardId, this);
+                                    chatDataHolderMap.get(chatId).getNewBankName(),
+                                    chatDataHolderMap.get(chatId).getNewCardName(),
+                                    false,
+                                    chatDataHolderMap.get(chatId).getBankCardId(),
+                                    this);
                             repository.saveBankCardToDb(bankCard1);
-                            showMainMenu(chatId, 2000);
-                            chatState = ServiceState.DEFAULT_STATE;
+                            prepareAndSendMessage(chatId, "Карта изменена!");
+                            showCardsMenu(chatId, 2000);
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
 
                         case EDIT_CAT__AWAITING_CAT_NAME:
-                            newCategoryName = update.getMessage().getText();
-
+                            chatDataHolderMap.get(chatId).setNewCategoryName(update.getMessage().getText());
                             CbCategory cbCategory111 = entityBuilders.cbCategoryBuilder(repository.getUserByChatId(chatId),
-                                    newCategoryName, true, 0L);
+                                    chatDataHolderMap.get(chatId).getNewCategoryName(), false,
+                                    chatDataHolderMap.get(chatId).getCategoryId());
                             repository.saveCbCategoryToDb(cbCategory111);
-
+                            prepareAndSendMessage(chatId, "Категория изменена!");
                             showCategoriesMenu(chatId, 2000);
-                            chatState = ServiceState.DEFAULT_STATE;
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case NEW_CATEGORY__AWAITING_CATEGORY_NAME:
-                            newCategoryName = update.getMessage().getText();
+                            chatDataHolderMap.get(chatId).setNewCategoryName(update.getMessage().getText());
                             CbCategory cbCategory = entityBuilders.cbCategoryBuilder(repository.getUserByChatId(chatId),
-                                    newCategoryName, true, 0L);
-
+                                    chatDataHolderMap.get(chatId).getNewCategoryName(), true, 0L);
                             if (!repository.hasCatDuplicatesInDb(chatId, cbCategory)) {
                                 repository.saveCbCategoryToDb(cbCategory);
                                 prepareAndSendMessage(cbCategory.getUser().getChatId(), "Категория сохранена: " + cbCategory);
@@ -249,68 +283,75 @@ public class TelegramBot extends TelegramLongPollingBot {
                                 prepareAndSendMessage(chatId, "Ошибка. Категория с таким именем уже существует!");
                             }
                             showCategoriesMenu(chatId, 2000);
-                            chatState = ServiceState.DEFAULT_STATE;
+
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case NEW_CHANCE__AWAITING_BANK_CARD_ID:
                             String bankCardId = update.getMessage().getText();
-                            bankCardForNewChance = repository.findBankCardById(Long.valueOf(bankCardId));
-                            chatState = ServiceState.NEW_CHANCE__AWAITING_CATEGORY_ID;
+                            chatDataHolderMap.get(chatId).setBankCardForNewChance(repository.findBankCardById(Long.valueOf(bankCardId)));
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_CATEGORY_ID);
                             prepareAndSendMessage(chatId, "Введите id категории");
                             showMyCategories(chatId);
                             break;
                         case NEW_CHANCE__AWAITING_CATEGORY_ID:
                             String categoryId = update.getMessage().getText();
-                            categoryForNewChance = repository.findCatById(Long.valueOf(categoryId));
-                            chatState = ServiceState.NEW_CHANCE__AWAITING_RATE;
+                            chatDataHolderMap.get(chatId).setCategoryForNewChance(repository.findCatById(Long.valueOf(categoryId)));
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_RATE);
                             prepareAndSendMessage(chatId, "Введите % кешбека");
                             break;
                         case NEW_CHANCE__AWAITING_RATE:
-                            rateForNewChance = Double.parseDouble(update.getMessage().getText()) / 100;
-                            chatState = ServiceState.NEW_CHANCE__AWAITING_START_DATE;
+                            chatDataHolderMap.get(chatId).setRateForNewChance(Double.parseDouble(update.getMessage().getText()) / 100);
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_START_DATE);
                             prepareAndSendMessage(chatId, "Введите дату начала действия кэшбека в формате dd-mm-yyyy");
                             break;
                         case NEW_CHANCE__AWAITING_START_DATE:
-                            startDateOfNewChance = LocalDate.parse(update.getMessage().getText(),
-                                    DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-                            chatState = ServiceState.NEW_CHANCE__AWAITING_END_DATE;
+                            chatDataHolderMap.get(chatId).setStartDateOfNewChance(
+                                    LocalDate.parse(update.getMessage().getText(),
+                                            DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_END_DATE);
                             prepareAndSendMessage(chatId, "Введите дату окончания действия кэшбека в формате dd-mm-yyyy");
                             break;
                         case NEW_CHANCE__AWAITING_END_DATE:
 
-                            endDateOfNewChance = LocalDate.parse(update.getMessage().getText(),
-                                    DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-                            if (endDateOfNewChance.isAfter(startDateOfNewChance) || endDateOfNewChance.isEqual(startDateOfNewChance)) {
-                                chatState = ServiceState.DEFAULT_STATE;
+                            chatDataHolderMap.get(chatId).setEndDateOfNewChance(LocalDate.parse(update.getMessage().getText(),
+                                    DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+
+                            if (chatDataHolderMap.get(chatId).getEndDateOfNewChance()
+                                    .isAfter(chatDataHolderMap.get(chatId).getStartDateOfNewChance())
+                                    || chatDataHolderMap.get(chatId).getEndDateOfNewChance()
+                                    .isEqual(chatDataHolderMap.get(chatId).getStartDateOfNewChance())) {
+
+                                chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                                 saveNewChancetoDb(chatId);
-                                showChancesMenu(chatId,2000);
+                                showChancesMenu(chatId, 2000);
                             } else {
                                 prepareAndSendMessage(chatId, "Введённая дата не может быть раньше даты начала");
                             }
-
                             break;
                         case ALL_CHANCES__AWAITING_CATEGORY_ID:
                             String categoryId2 = update.getMessage().getText();
                             CbCategory cbCategory2 = repository.findCatById(Long.valueOf(categoryId2));
                             showMyChancesOfCategory(chatId, cbCategory2.getName(), false);
-                            chatState = ServiceState.DEFAULT_STATE;
+
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case ALL_CHANCES_ACTIVE__AWAITING_CATEGORY_ID:
                             String categoryId3 = update.getMessage().getText();
                             CbCategory cbCategory3 = repository.findCatById(Long.valueOf(categoryId3));
                             showMyChancesOfCategory(chatId, cbCategory3.getName(), true);
-                            chatState = ServiceState.DEFAULT_STATE;
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case DELETE_CHANCE__AWAITING_CHANCE_ID:
-                            cbChanceId = Long.valueOf(update.getMessage().getText());
                             log.info("Deleting Chance...");
-                            repository.deleteCbChance(cbChanceId, this);
+                            repository.deleteCbChance(Long.valueOf(update.getMessage().getText()), this);
                             prepareAndSendMessage(chatId, "Кэшбек удален из базы данных");
-                            chatState = ServiceState.DEFAULT_STATE;
+
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             showChancesMenu(chatId, 2000);
                             break;
                         default:
                             prepareAndSendMessage(chatId, "Sorry, command was not recognized");
-                            chatState = ServiceState.DEFAULT_STATE;
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     }
             }
 //      2) Handling - inlinekeyboard button is pressed
@@ -318,11 +359,11 @@ public class TelegramBot extends TelegramLongPollingBot {
             String callbackData = update.getCallbackQuery().getData();
             long messageId = update.getCallbackQuery().getMessage().getMessageId();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
+            chatDataHolderMap.putIfAbsent(chatId, new ChatDataHolder());
 //          Edition of sent message after pressing button
             EditMessageText message = new EditMessageText();
             String text = "Вы выбрали: " + callbackData;
             executeEditMessageText(text, chatId, messageId);
-
             MenuOption menuOption = callbackParser(callbackData);
 
             switch (menuOption.getMenuButton()) {
@@ -346,8 +387,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 //                  TODO refactor. DRY
                     log.info(chatId + "Building new bank card...");
                     prepareAndSendMessage(chatId, "Введите название банка");
-                    chatState = ServiceState.NEW_BANK_CARD__AWAITING_BANK_NAME;
                     log.info(chatId + "Waiting for bank name...");
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_BANK_CARD__AWAITING_BANK_NAME);
                     break;
                 case CARDSMENU_EDITCARD:
                     showMenu(chatId, "Выберите карту",
@@ -357,9 +398,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case CARDSMENU_EDITCARD_ANYCARD:
                     log.info(chatId + "Editing bank card...");
                     prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
-                    bankCardId = repository.getMyCardId(chatId, menuOption.getOptionName());
+                    chatDataHolderMap.get(chatId).setBankCardId(repository.getMyCardId(chatId, menuOption.getOptionName()));
                     prepareAndSendMessage(chatId, "Введите новое название банка");
-                    chatState = ServiceState.EDIT_BANK_CARD__AWAITING_BANK_NAME;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.EDIT_BANK_CARD__AWAITING_BANK_NAME);
                     break;
                 case CARDSMENU_DELETECARD:
                     showMenu(chatId,
@@ -368,10 +409,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 case CARDSMENU_DELETECARD_ANYCARD:
                     prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
-                    bankCardId = repository.getMyCardId(chatId, menuOption.getOptionName());
+                    chatDataHolderMap.get(chatId).setBankCardId(repository.getMyCardId(chatId, menuOption.getOptionName()));
                     showMenu(chatId, "Будет удалена карта " + menuOption.getOptionName() + " со всеми кешбеками. \n" +
                             "Эту операцию нельзя отменить. Вы уверены?", choiceMenuList);
-                    choiceForEnum = DELETE_BANK_CARD;
+                    chatDataHolderMap.get(chatId).setChoice(DELETE_BANK_CARD);
                     break;
 
                 case CHOICEMENU_NO:
@@ -380,18 +421,18 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 case CHOICEMENU_YES:
 
-                    switch (choiceForEnum) {
+                    switch (chatDataHolderMap.get(chatId).getChoice()) {
                         case DELETE_BANK_CARD:
                             log.info(chatId + "Deleting bank card...");
-                            repository.deleteBankCard(bankCardId);
+                            repository.deleteBankCard(chatDataHolderMap.get(chatId).getBankCardId());
                             prepareAndSendMessage(chatId, "Карта удалена из базы данных");
                             showCardsMenu(chatId, 2000);
                             break;
                         case DELETE_CATEGORY:
                             log.info(chatId + "Deleting category...");
-                            repository.deleteCategory(categoryId);
+                            repository.deleteCategory(chatDataHolderMap.get(chatId).getCategoryId());
                             prepareAndSendMessage(chatId, "Категория удалена из базы данных");
-                            showCategoriesMenu(chatId,2000);
+                            showCategoriesMenu(chatId, 2000);
                             break;
                         case DELETE_CHANCE:
                             //TODO
@@ -407,7 +448,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case CATMENU_NEWCAT:
                     log.info(chatId + "Building new category...");
                     prepareAndSendMessage(chatId, "Введите название категории");
-                    chatState = ServiceState.NEW_CATEGORY__AWAITING_CATEGORY_NAME;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CATEGORY__AWAITING_CATEGORY_NAME);
                     log.info(chatId + "Waiting for category name...");
                     break;
 
@@ -419,12 +460,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 case CATMENU_EDITCAT_ANYCAT:
                     prepareAndSendMessage(chatId, "Выбрана категория " + menuOption.getOptionName());
-                    categoryId = repository.getMyCategoryId(chatId, menuOption.getOptionName());
+                    chatDataHolderMap.get(chatId).setCategoryId(
+                            repository.getMyCategoryId(chatId, menuOption.getOptionName()));
                     log.info(chatId + "Editing category card...");
                     prepareAndSendMessage(chatId, "Введите новое название категории");
-                    chatState = ServiceState.EDIT_CAT__AWAITING_CAT_NAME;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.EDIT_CAT__AWAITING_CAT_NAME);
                     break;
-
                 case CATMENU_DELETECAT:
                     showMenu(chatId,
                             "Выберите категорию",
@@ -432,32 +473,29 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 case CATMENU_DELETECAT_ANYCAT:
                     prepareAndSendMessage(chatId, "Выбрана категория " + menuOption.getOptionName());
-                    categoryId = repository.getMyCategoryId(chatId, menuOption.getOptionName());
+                    chatDataHolderMap.get(chatId).setCategoryId(
+                            repository.getMyCategoryId(chatId, menuOption.getOptionName()));
 
                     showMenu(chatId, "Будет удалена категория " + menuOption.getOptionName() + " со всеми кешбеками. \n" +
                             "Эту операцию нельзя отменить. Вы уверены?", choiceMenuList);
-                    choiceForEnum = DELETE_CATEGORY;
+                    chatDataHolderMap.get(chatId).setChoice(DELETE_CATEGORY);
                     break;
-
                 case CHANCES_ACTCHANCES_CAT:
                     showMenu(chatId, "Выберите категорию",
                             menuBuilders.categoryMenuBuilder(repository.getMyCategoriesList(chatId), MenuButtons.ACTCHANCES_CAT_CHOSEN));
                     break;
-
                 case ACTCHANCES_CAT_CHOSEN:
-                    categoryId = repository.getMyCategoryId(chatId, menuOption.getOptionName());
+                    chatDataHolderMap.get(chatId).setCategoryId(
+                            repository.getMyCategoryId(chatId, menuOption.getOptionName()));
                     showMyChancesOfCategory(chatId, menuOption.getOptionName(), true);
                     showChancesMenu(chatId, 2000);
                     break;
-
-
                 case CHANCES_ACTCHANCES_CARD:
                     showMenu(chatId, "Выберите карту",
                             menuBuilders.cardMenuBuilder(repository.getMyCardsList(chatId), MenuButtons.ACTCHANCES_CARD_CHOSEN));
                     break;
-
                 case ACTCHANCES_CARD_CHOSEN:
-                    bankCardId = repository.getMyCardId(chatId, menuOption.getOptionName());
+                    chatDataHolderMap.get(chatId).setBankCardId(repository.getMyCardId(chatId, menuOption.getOptionName()));
                     showMyChancesOfCard(chatId, menuOption.getOptionName(), true, false);
                     showChancesMenu(chatId, 2000);
                     break;
@@ -467,54 +505,37 @@ public class TelegramBot extends TelegramLongPollingBot {
                             menuBuilders.cardMenuBuilder(repository.getMyCardsList(chatId),
                                     MenuButtons.NEWCHANCE_ANYCARD));
                     break;
-
                 case NEWCHANCE_ANYCARD:
                     prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
-                    bankCardForNewChance = repository.findBankCardById(repository.getMyCardId(chatId, menuOption.getOptionName()));
+
+                    chatDataHolderMap.get(chatId).setBankCardForNewChance(
+                            repository.findBankCardById(repository.getMyCardId(chatId, menuOption.getOptionName())));
+
                     showMenu(chatId, "Выберите категорию",
                             menuBuilders.categoryMenuBuilder(repository.getMyCategoriesList(chatId),
                                     MenuButtons.NEWCHANCE_ANYCAT));
                     break;
-
                 case NEWCHANCE_ANYCAT:
                     prepareAndSendMessage(chatId, "Выбрана категория " + menuOption.getOptionName());
-                    categoryForNewChance = repository.findCatById(
-                            repository.getMyCategoryId(chatId, menuOption.getOptionName()));
+
+                    chatDataHolderMap.get(chatId).setCategoryForNewChance(repository.findCatById(
+                            repository.getMyCategoryId(chatId, menuOption.getOptionName())));
                     prepareAndSendMessage(chatId, "Введите % кэшбека");
-                    chatState = ServiceState.NEW_CHANCE__AWAITING_RATE;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_RATE);
                     break;
-
-//                To develop edit CbChance later. For this time only delete is available
-
-//                case CHANCESMENU_EDITCHANCE:
-//                    prepareAndSendMessage(chatId, "Выберите карту");
-//                    showMenu(chatId, "Выберите карту, по которой нужно изменить кэшбек",
-//                            cardMenuBuilder(getMyCardsList(chatId),
-//                                    MenuButtons.EDITCHANCE_ANYCARD));
-//                    break;
-//
-//                case EDITCHANCE_ANYCARD:
-//                    prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
-//                    bankCardForNewChance = bankCardRepository.findById(getMyCardId(chatId, menuOption.getOptionName())).get();
-//
-//                    showMenu(chatId, "Выберите кэшбек, который нужно изменить",
-//                            cbChanceMenuBuilder(getMyCbChancesList(chatId),
-//                                    MenuButtons.EDITCHANCE_ANYCHANCE));
-//                    break;
                 case CHANCESMENU_DELETECHANCE:
                     prepareAndSendMessage(chatId, "Выберите карту");
                     showMenu(chatId, "Выберите карту, по которой нужно удалить кэшбек",
                             menuBuilders.cardMenuBuilder(repository.getMyCardsList(chatId),
                                     MenuButtons.DELETECHANCE_ANYCARD));
                     break;
-
                 case DELETECHANCE_ANYCARD:
                     prepareAndSendMessage(chatId, "Выбрана карта " + menuOption.getOptionName());
-                    bankCardId = repository.getMyCardId(chatId, menuOption.getOptionName());
+                    chatDataHolderMap.get(chatId).setBankCardId(repository.getMyCardId(chatId, menuOption.getOptionName()));
                     prepareAndSendMessage(chatId, "Весь ваш действующий кэшбек по карте.\n" +
                             "Введите Id номер кэшбека, который хотите удалить:");
                     showMyChancesOfCard(chatId, menuOption.getOptionName(), true, true);
-                    chatState = ServiceState.DELETE_CHANCE__AWAITING_CHANCE_ID;
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DELETE_CHANCE__AWAITING_CHANCE_ID);
                     break;
                 default:
                     break;
@@ -541,7 +562,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage sendMessage = menuBuilders.inlineMenuBuilder(chatId, menuName, menuOptionArrayList);
         executeMessage(sendMessage);
     }
-///// TODO
+
+    ///// TODO
     private void showMyCards(long chatId, boolean showWithId) {
         List<BankCard> bankCardList = (List<BankCard>) repository.getAllBankCards();
         Collections.sort(bankCardList);
@@ -661,11 +683,11 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         CbChance newCbChance = new CbChance();
         newCbChance.setUser(user);
-        newCbChance.setBankCard(bankCardForNewChance);
-        newCbChance.setCbCategory(categoryForNewChance);
-        newCbChance.setRate(rateForNewChance);
-        newCbChance.setStartDate(startDateOfNewChance);
-        newCbChance.setEndDate(endDateOfNewChance);
+        newCbChance.setBankCard(chatDataHolderMap.get(chatId).getBankCardForNewChance());
+        newCbChance.setCbCategory(chatDataHolderMap.get(chatId).getCategoryForNewChance());
+        newCbChance.setRate(chatDataHolderMap.get(chatId).getRateForNewChance());
+        newCbChance.setStartDate(chatDataHolderMap.get(chatId).getStartDateOfNewChance());
+        newCbChance.setEndDate(chatDataHolderMap.get(chatId).getEndDateOfNewChance());
 
         repository.saveCbChanceToDb(newCbChance);
         log.info("Chance saved to db " + newCbChance);

@@ -3,7 +3,6 @@ package CashDance.Bot.service;
 import CashDance.Bot.model.BankCard;
 import CashDance.Bot.model.CbCategory;
 import CashDance.Bot.model.User;
-import CashDance.Bot.model.interfaces.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

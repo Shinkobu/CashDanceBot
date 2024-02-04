@@ -28,3 +28,6 @@ PROBLEM 18:17:53.655 [CashDanceBot Telegram Executor] ERROR CashDance.Bot.servic
 *DONE Log messages in code
 TODO ref saveNewChancetoDb
 *TODO Cancel button when choosing card,cat or else
+TODO bot-admin - show all users, new users, number of interactions today
+DONE multithreading - some kind of solution
+TODO multithreading
