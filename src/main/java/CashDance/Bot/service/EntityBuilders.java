@@ -1,10 +1,10 @@
 package CashDance.Bot.service;
 
-import CashDance.Bot.model.BankCard;
-import CashDance.Bot.model.CbCategory;
-import CashDance.Bot.model.User;
+import CashDance.Bot.model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -43,5 +43,19 @@ public class EntityBuilders {
             newBankCard.setCardId(bankCardId);
         }
         return newBankCard;
+    }
+
+    CbChance cbChanceBuilder(User user, Map<Long, ChatDataHolder> chatDataHolderMap, long chatId) {
+        log.info(user.getChatId() + "Building cbChance...");
+
+        CbChance newCbChance = new CbChance();
+        newCbChance.setUser(user);
+        newCbChance.setBankCard(chatDataHolderMap.get(chatId).getBankCardForNewChance());
+        newCbChance.setCbCategory(chatDataHolderMap.get(chatId).getCategoryForNewChance());
+        newCbChance.setRate(chatDataHolderMap.get(chatId).getRateForNewChance());
+        newCbChance.setStartDate(chatDataHolderMap.get(chatId).getStartDateOfNewChance());
+        newCbChance.setEndDate(chatDataHolderMap.get(chatId).getEndDateOfNewChance());
+
+        return newCbChance;
     }
 }

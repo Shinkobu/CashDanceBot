@@ -1,4 +1,4 @@
-package CashDance.Bot.model.repositories;
+package CashDance.Bot.model.interfaces;
 
 import CashDance.Bot.model.BankCard;
 import org.springframework.data.repository.CrudRepository;

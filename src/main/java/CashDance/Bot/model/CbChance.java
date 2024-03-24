@@ -24,10 +24,13 @@ public class CbChance extends CashbackEntity{
     @ManyToOne
     @JoinColumn(name = "bankCard_id")
     private BankCard bankCard;
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private String userComment;
+    private Double rate;
 
     public CbChance() {
     }
-
     public CbChance(SimpleDateFormat dateFormat, Long cbChanceId, CbCategory cbCategory, User user, BankCard bankCard, LocalDate startDate, LocalDate endDate, String userComment, CbCategory category, Double rate) {
         this.dateFormat = dateFormat;
         this.cbChanceId = cbChanceId;
@@ -40,12 +43,15 @@ public class CbChance extends CashbackEntity{
         this.rate = rate;
     }
 
-    private LocalDate startDate;
-    private LocalDate endDate;
-    private String userComment;
-
-    private Double rate;
-
+    public CbChance(CbChanceBuilder cbChanceBuilder) {
+        this.cbChanceId = cbChanceBuilder.cbChanceId;
+        this.cbCategory = cbChanceBuilder.cbCategory;
+        this.user = cbChanceBuilder.user;
+        this.bankCard = cbChanceBuilder.bankCard;
+        this.startDate = cbChanceBuilder.startDate;
+        this.endDate = cbChanceBuilder.endDate;
+        this.rate = cbChanceBuilder.rate;
+    }
 
     @Override
     public String toString() {
@@ -134,5 +140,36 @@ public class CbChance extends CashbackEntity{
 
     public void setRate(Double rate) {
         this.rate = rate;
+    }
+
+    public static class CbChanceBuilder{
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+        private Long cbChanceId;
+        private CbCategory cbCategory;
+        private User user;
+        private BankCard bankCard;
+        private LocalDate startDate;
+        private LocalDate endDate;
+        private String userComment;
+        private Double rate;
+
+        public CbChanceBuilder(Long cbChanceId, CbCategory cbCategory, User user, BankCard bankCard, LocalDate startDate, LocalDate endDate, Double rate) {
+            this.cbChanceId = cbChanceId;
+            this.cbCategory = cbCategory;
+            this.user = user;
+            this.bankCard = bankCard;
+            this.startDate = startDate;
+            this.endDate = endDate;
+            this.rate = rate;
+        }
+
+        public void setUserComment(String userComment) {
+            this.userComment = userComment;
+        }
+
+        public CbChance build(){
+            return new CbChance(this);
+        }
     }
 }

@@ -42,6 +42,7 @@ public class MenuBuilders {
             MenuOption menuOption = new MenuOption(bankCard.getName(), menuButtons);
             resultList.add(menuOption);
         }
+        resultList.add(new MenuOption("<<Отмена", MenuButtons.ALLMENU_TOMAINMENU));
         return resultList;
     }
 
@@ -52,6 +53,7 @@ public class MenuBuilders {
             MenuOption menuOption = new MenuOption(cbCategory.getName(), menuButtons);
             resultList.add(menuOption);
         }
+        resultList.add(new MenuOption("<<Отмена", MenuButtons.ALLMENU_TOMAINMENU));
         return resultList;
     }
 
@@ -61,6 +63,7 @@ public class MenuBuilders {
             MenuOption menuOption = new MenuOption(cbChance.shortToString(), menuButtons);
             resultList.add(menuOption);
         }
+        resultList.add(new MenuOption("<<Отмена", MenuButtons.ALLMENU_TOMAINMENU));
         return resultList;
     }
 

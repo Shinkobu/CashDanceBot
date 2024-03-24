@@ -1,10 +1,7 @@
 package CashDance.Bot.service;
 
 import CashDance.Bot.model.*;
-import CashDance.Bot.model.repositories.BankCardRepository;
-import CashDance.Bot.model.repositories.CbCategoryRepository;
-import CashDance.Bot.model.repositories.CbChanceRepository;
-import CashDance.Bot.model.repositories.UserRepository;
+import CashDance.Bot.model.interfaces.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -13,6 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -25,6 +23,8 @@ public class Repository {
     private CbChanceRepository cbChanceRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private CbMonitorRepository cbMonitorRepository;
 
 
     public BankCard findBankCardById(Long id) {
@@ -35,6 +35,13 @@ public class Repository {
     public CbCategory findCatById(Long id) {
         Optional<CbCategory> cbCategory = cbCategoryRepository.findById(id);
         return cbCategory.get();
+    }
+
+    public List<CbCategory> findAllUserCats(Long userChatId) {
+        List<CbCategory> catList = (List<CbCategory>) cbCategoryRepository.findAll();
+        return catList.stream()
+                .filter(s -> s.getUser().getChatId().equals(userChatId))
+                .collect(Collectors.toList());
     }
 
     public void saveBankCardToDb(BankCard bankCard) {
@@ -50,6 +57,11 @@ public class Repository {
     public void saveCbChanceToDb(CbChance cbChance) {
         cbChanceRepository.save(cbChance);
         log.info("Chance saved to db " + cbChance);
+    }
+
+    public void saveCbMonitorToDb(CbMonitor cbMonitor) {
+        cbMonitorRepository.save(cbMonitor);
+        log.info("CbMonitor saved to db " + cbMonitor);
     }
 
     void deleteBankCard(Long bankCardId) {
@@ -155,6 +167,11 @@ public class Repository {
     Iterable<BankCard> getAllBankCards() {
         Iterable<BankCard> bankCardList = bankCardRepository.findAll();
         return bankCardList;
+    }
+
+    Iterable<User> getAllUsers() {
+        Iterable<User> users = userRepository.findAll();
+        return users;
     }
 
     Iterable<CbChance> getAllCbChances() {

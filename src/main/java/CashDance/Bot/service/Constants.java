@@ -7,6 +7,26 @@ public class Constants {
 
     static final String DELIMETER = "///";
 
+// Кнопки отмены в меню для прерывания диалогов ввода данных
+
+    static final MenuOption cancel_toMainMenu = new MenuOption("<<Отмена", MenuButtons.ALLMENU_TOMAINMENU);
+//    static final MenuOption cancel_toCardsMenu = new MenuOption("<<Отмена", MenuButtons.MAINMENU_MYCARDS);
+//    static final MenuOption cancel_toCatsMenu = new MenuOption("<<Отмена", MenuButtons.MAINMENU_MYCATEGORIES);
+//    static final MenuOption cancel_toChancesMenu = new MenuOption("<<Отмена", MenuButtons.MAINMENU_MYCASHBACK);
+
+    static List<MenuOption> cancel_toMainMenuList = new ArrayList<>() {{
+        add(cancel_toMainMenu);
+    }};
+//    static List<MenuOption> cancel_toCardsMenuList = new ArrayList<>() {{
+//        add(cancel_toCardsMenu);
+//    }};
+//    static List<MenuOption> cancel_toCatsMenuList = new ArrayList<>() {{
+//        add(cancel_toCatsMenu);
+//    }};
+//    static List<MenuOption> cancel_toChancesMenuList = new ArrayList<>() {{
+//        add(cancel_toChancesMenu);
+//    }};
+
     static final MenuOption yesNoMenu_Yes = new MenuOption("Да", MenuButtons.CHOICEMENU_YES);
     static final MenuOption yesNoMenu_No = new MenuOption("Нет", MenuButtons.CHOICEMENU_NO);
 
