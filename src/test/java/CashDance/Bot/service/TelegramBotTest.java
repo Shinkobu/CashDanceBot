@@ -199,7 +199,7 @@ class TelegramBotTest {
 //
 //    @Test
 //    public void successSendMessage(){
-//        RestAssured.baseURI = "https://api.telegram.org/bot6453381808:AAGOFykQvobHjylfKR4idNxV_uGP7wKavSY";
+//        RestAssured.baseURI = "https://api.telegram.org/BOT_TOKEN";
 //        given()
 ////                .param("text","some text")
 //                .param("chat_id", 410071983)

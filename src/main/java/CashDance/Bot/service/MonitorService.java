@@ -9,11 +9,9 @@ public class MonitorService {
     public void incrementUpdateCounter() {
         dailyUpdateCounter++;
     }
-
     public Integer getDailyUpdateCounter() {
         return dailyUpdateCounter;
     }
-
     public void setDailyUpdateCounter(Integer dailyUpdateCounter) {
         this.dailyUpdateCounter = dailyUpdateCounter;
     }

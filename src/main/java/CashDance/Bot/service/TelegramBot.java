@@ -39,6 +39,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     static final String ERROR_TEXT = "Error occurred: ";
 
     final BotConfig config;
+    //        Stores temporary data for runtime purposes.
+    //        Solved the problem of multithreading.
+    private final Map<Long, ChatDataHolder> chatDataHolderMap = new HashMap<>();
     @Autowired
     private EntityBuilders entityBuilders;
     @Autowired
@@ -49,13 +52,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     private Repository repository;
     @Autowired
     private MonitorService monitorService;
-    private String newBankName;
     private Integer number;
     private SendMessage lastSendMessage;
     private Update lastUpdate;
-    //        Stores temporary data for runtime purposes.
-    //        Solved the problem of multithreading.
-    private final Map<Long, ChatDataHolder> chatDataHolderMap = new HashMap<>();
 
     public TelegramBot(BotConfig config) {
 //      configuring bot Menu in constructor
@@ -161,6 +160,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                     showMyCategories(chatId);
                     chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
+                case "/feedback":
+                    showMenu(chatId, "Введите сообщение ниже, максимум 500 символов", cancel_toMainMenuList);
+                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_FEEDBACK__AWATING_MESSAGE);
+                    break;
 //                case "/newchance":
 //                    log.info("Building new cashback chance");
 //                    prepareAndSendMessage(chatId, "Выберите карту");
@@ -222,7 +225,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                             BankCard bankCard = entityBuilders.bankCardBuilder(repository.getUserByChatId(chatId),
                                     chatDataHolderMap.get(chatId).getNewBankName(),
                                     chatDataHolderMap.get(chatId).getNewCardName(),
-                                    true, 0L, this);
+                                    true, 0L);
                             if (!repository.hasCardDuplicatesInDb(chatId, bankCard)) {
                                 repository.saveBankCardToDb(bankCard);
                                 prepareAndSendMessage(bankCard.getUser().getChatId(), "Карта сохранена: " + bankCard);
@@ -240,8 +243,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                                     chatDataHolderMap.get(chatId).getNewBankName(),
                                     chatDataHolderMap.get(chatId).getNewCardName(),
                                     false,
-                                    chatDataHolderMap.get(chatId).getBankCardId(),
-                                    this);
+                                    chatDataHolderMap.get(chatId).getBankCardId());
                             repository.saveBankCardToDb(bankCard1);
                             prepareAndSendMessage(chatId, "Карта изменена!");
                             showCardsMenu(chatId, 2000);
@@ -270,6 +272,20 @@ public class TelegramBot extends TelegramLongPollingBot {
                             }
                             showCategoriesMenu(chatId, 2000);
 
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
+                            break;
+                        case NEW_FEEDBACK__AWATING_MESSAGE:
+                            if (update.getMessage().getText().length() >= 500) {
+                                prepareAndSendMessage(chatId, "Слишком длинное сообщение, максимум - 500 символов");
+                            } else {
+                                repository.saveFeedbackToDb(entityBuilders.feedbackBuilder(
+                                        repository.getUserByChatId(chatId),
+                                        update.getMessage().getText()));
+
+                                prepareAndSendMessage(chatId, "Обратная связь получена");
+                                log.info(chatId + "- feedback received");
+                            }
+                            showMainMenu(chatId, 2000);
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case NEW_CHANCE__AWAITING_BANK_CARD_ID:
@@ -546,6 +562,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         showMenu(chatId, "Банковские карты", Constants.cardMenuList);
     }
 
+    /**
+     * @param chatId              - telegram user chatID
+     * @param menuName            - name of the menu, that is printed above menu options
+     * @param menuOptionArrayList - menu options that are displayed in message zone below menu name
+     */
     public void showMenu(long chatId, String menuName, List<MenuOption> menuOptionArrayList) {
         SendMessage sendMessage = menuBuilders.inlineMenuBuilder(chatId, menuName, menuOptionArrayList);
         executeMessage(sendMessage);
@@ -704,8 +725,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             repository.saveUserToDb(user);
             log.info("User saved to db " + user);
 
-            List<String> cbCategoryNames = new ArrayList<>();
-            cbCategoryNames.addAll(Arrays.asList("Авто", "Заправки", "Дом и ремонт", "Кафе и рестораны",
+            List<String> cbCategoryNames = new ArrayList<>(Arrays.asList("Авто", "Заправки", "Дом и ремонт", "Кафе и рестораны",
                     "Супермаркеты", "Развлечения", "Такси"));
             for (String s : cbCategoryNames) {
                 CbCategory cbCategory = new CbCategory();
@@ -741,8 +761,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         String answer = EmojiParser.parseToUnicode("Привет, " + name + ", с вами CashDanceBot" + " :blush: \n\n" +
                 "Для справки используйте команду /help \n\n" +
                 "Для перехода в главное меню используйте команду /mainmenu \n\n " +
-                "Информация о текущей версии /version");
-        log.info("Replied to user " + name + " - " + chatId);
+                "Информация о текущей версии /version\n" +
+                "Cообщить о проблеме, предложить улучшение /feedback");
+
+        log.info("Replied to user - " + chatId);
         prepareAndSendMessage(chatId, answer);
     }
 

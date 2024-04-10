@@ -4,6 +4,8 @@ import CashDance.Bot.model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Slf4j
@@ -22,7 +24,7 @@ public class EntityBuilders {
     /**
      * Builds a BankCard.
      *
-     * @param user      current user
+     * @param user        current user
      * @param newBankName
      * @param newCardName
      * @param isNew       if new bank card is created, then false;
@@ -33,7 +35,7 @@ public class EntityBuilders {
      * @return
      */
 
-    BankCard bankCardBuilder(User user, String newBankName, String newCardName, boolean isNew, long bankCardId, TelegramBot telegramBot) {
+    BankCard bankCardBuilder(User user, String newBankName, String newCardName, boolean isNew, long bankCardId) {
         log.info(user.getChatId() + "Building bank card..." + newCardName);
         BankCard newBankCard = new BankCard();
         newBankCard.setBankName(newBankName);
@@ -57,5 +59,16 @@ public class EntityBuilders {
         newCbChance.setEndDate(chatDataHolderMap.get(chatId).getEndDateOfNewChance());
 
         return newCbChance;
+    }
+
+    Feedback feedbackBuilder(User user, String message) {
+        log.info(user.getChatId() + "Building feedback...");
+
+        Feedback feedback = new Feedback();
+        feedback.setFeedbackDateTime(LocalDateTime.now());
+        feedback.setFeedbackMessage(message);
+        feedback.setUser(user);
+
+        return feedback;
     }
 }

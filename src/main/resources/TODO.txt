@@ -17,7 +17,7 @@ DONE all users can see all chances and categories
 *DONE no duplicates by name for one user - for cards, categories, chances
 DONE actual cashback chances
 DONE back button in all menus
-*TODO isPresent Check in all .get
+*DONE isPresent Check in all .get
 PROBLEM 18:17:53.655 [CashDanceBot Telegram Executor] ERROR CashDance.Bot.service.TelegramBot - Error occurred: Error sending message: [400] Bad Request: BUTTON_DATA_INVALID
 *DONE DRY saveCardToDb and saveCategorytoDb
 TODO tests on test database
@@ -34,3 +34,8 @@ DONE refactor saveNewChancetoDb
 DONE Cancel button when choosing card,cat or else
 DONE bot-admin - show all users, number of interactions today
 DONE multithreading - some kind of solution
+TODO application update notification for all users
+DONE /feedback option for users
+DONE feedback scheduled sending to admin
+DONE number of interactions history in db, number of users
+TODO sql passwords to special file

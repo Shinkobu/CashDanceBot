@@ -1,11 +1,14 @@
 package CashDance.Bot.config;
 
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -19,51 +22,46 @@ import java.util.stream.Collectors;
 @PropertySource("token.properties")
 public class BotConfig {
 
-    public BotConfig() throws IOException, URISyntaxException {
-    }
-
     @Value("${bot.name}")
     String botName;
-
     @Value("${bot.token}")
     String token;
-
     @Value("${bot.owner}")
     Long ownerId;
 
-
-    URL url = BotConfig.class.getClassLoader()
-            .getResource("Version.md");
-    List<String> stringList = Files.readAllLines(Paths.get(url.toURI()));
-    String versionText = stringList.stream()
-            .map(s -> s.concat("\n"))
-            .collect(Collectors.joining());
-
-    URL url1 = BotConfig.class.getClassLoader()
-            .getResource("Help.md");
-    List<String> stringList1 = Files.readAllLines(Paths.get(url1.toURI()));
-    String helpText = stringList1.stream()
-            .map(s -> s.concat("\n"))
-            .collect(Collectors.joining());
+    public BotConfig() throws IOException, URISyntaxException {
+    }
 
     public String getBotName() {
         return botName;
     }
+
     public String getToken() {
         return token;
     }
+
     public Long getOwnerId() {
         return ownerId;
     }
 
+    @SneakyThrows
     public String getHelpText() {
-        return helpText;
+        try (InputStream inputStream = getClass().getResourceAsStream("/Help.md");
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            String contents = reader.lines()
+                    .collect(Collectors.joining(System.lineSeparator()));
+            return contents;
+        }
     }
 
-    public void setHelpText(String helpText) {
-        this.helpText = helpText;
+    @SneakyThrows
+    public String getVersionText() {
+        try (InputStream inputStream = getClass().getResourceAsStream("/Version.md");
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            String contents = reader.lines()
+                    .collect(Collectors.joining(System.lineSeparator()));
+            return contents;
+        }
     }
-
-    public String getVersionText() {return versionText;}
 
 }

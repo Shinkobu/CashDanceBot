@@ -7,8 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -25,16 +29,22 @@ public class Repository {
     private UserRepository userRepository;
     @Autowired
     private CbMonitorRepository cbMonitorRepository;
+    @Autowired
+    private FeedbackRepository feedbackRepository;
 
 
     public BankCard findBankCardById(Long id) {
         Optional<BankCard> bankCard = bankCardRepository.findById(id);
-        return bankCard.get();
+        if (bankCard.isPresent()) {
+            return bankCard.get();
+        } else throw new NoSuchElementException("BankCard is not found");
     }
 
     public CbCategory findCatById(Long id) {
         Optional<CbCategory> cbCategory = cbCategoryRepository.findById(id);
-        return cbCategory.get();
+        if (cbCategory.isPresent()) {
+            return cbCategory.get();
+        } else throw new NoSuchElementException("Category is not found");
     }
 
     public List<CbCategory> findAllUserCats(Long userChatId) {
@@ -62,6 +72,11 @@ public class Repository {
     public void saveCbMonitorToDb(CbMonitor cbMonitor) {
         cbMonitorRepository.save(cbMonitor);
         log.info("CbMonitor saved to db " + cbMonitor);
+    }
+
+    public void saveFeedbackToDb(Feedback feedback) {
+        feedbackRepository.save(feedback);
+        log.info("Feedback saved to db " + feedback);
     }
 
     void deleteBankCard(Long bankCardId) {
@@ -112,8 +127,20 @@ public class Repository {
         return resultList;
     }
 
-    boolean hasCardDuplicatesInDb(long chatId, CashbackEntity cashbackEntity) {
+    public List<Feedback> getFeedbackList(LocalDateTime start, LocalDateTime end) {
+        Iterable<Feedback> feedbacks = feedbackRepository.findAll();
+        List<Feedback> resultList = new ArrayList<>();
+        for (Feedback feedback : feedbacks) {
+//            LocalDateTime.parse(feedback.getFeedbackDateTime(),DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+            if (feedback.getFeedbackDateTime().isAfter(start.minusDays(1)) &&
+                    feedback.getFeedbackDateTime().isBefore(end.plusDays(1))) {
+                resultList.add(feedback);
+            }
+        }
+        return resultList;
+    }
 
+    boolean hasCardDuplicatesInDb(long chatId, CashbackEntity cashbackEntity) {
         List<BankCard> cashbackEntities = (List<BankCard>) bankCardRepository.findAll();
         for (CashbackEntity entity : cashbackEntities) {
             if (entity.getUser().getChatId().equals(chatId) &&
@@ -125,7 +152,6 @@ public class Repository {
     }
 
     boolean hasCatDuplicatesInDb(long chatId, CashbackEntity cashbackEntity) {
-
         List<CbCategory> cashbackEntities = (List<CbCategory>) cbCategoryRepository.findAll();
         for (CashbackEntity entity : cashbackEntities) {
             if (entity.getUser().getChatId().equals(chatId) &&
@@ -138,8 +164,9 @@ public class Repository {
 
     User getUserByChatId(long chatId) {
         Optional<User> optionalUser = userRepository.findById(chatId);
-        User user = optionalUser.get();
-        return user;
+        if (optionalUser.isPresent()) {
+            return optionalUser.get();
+        } else throw new NoSuchElementException("User is not found");
     }
 
     Long getMyCardId(long chatId, String cardName) {
@@ -165,30 +192,28 @@ public class Repository {
     }
 
     Iterable<BankCard> getAllBankCards() {
-        Iterable<BankCard> bankCardList = bankCardRepository.findAll();
-        return bankCardList;
+        return bankCardRepository.findAll();
     }
 
     Iterable<User> getAllUsers() {
-        Iterable<User> users = userRepository.findAll();
-        return users;
+        return userRepository.findAll();
     }
 
     Iterable<CbChance> getAllCbChances() {
-        Iterable<CbChance> cbChances = cbChanceRepository.findAll();
-        return cbChances;
+        return cbChanceRepository.findAll();
     }
 
     Iterable<CbCategory> getAllCbCategories() {
-        Iterable<CbCategory> cbCategories = cbCategoryRepository.findAll();
-        return cbCategories;
+        return cbCategoryRepository.findAll();
     }
 
-    User saveUserToDb(User user) {
-        return userRepository.save(user);
+    void saveUserToDb(User user) {
+        userRepository.save(user);
     }
 
     Optional<User> getUserById(Message message) {
         return userRepository.findById(message.getChatId());
     }
+
+
 }
