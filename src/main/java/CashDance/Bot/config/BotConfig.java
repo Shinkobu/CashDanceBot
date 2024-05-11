@@ -8,6 +8,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import javax.persistence.criteria.CriteriaBuilder;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -22,12 +23,19 @@ import java.util.stream.Collectors;
 @PropertySource("token.properties")
 public class BotConfig {
 
+
+    @Value("${show.menu.delay.time}")
+    Integer menuDelayTime;
     @Value("${bot.name}")
     String botName;
     @Value("${bot.token}")
     String token;
     @Value("${bot.owner}")
     Long ownerId;
+
+    public Integer getMenuDelayTime() {
+        return menuDelayTime;
+    }
 
     public BotConfig() throws IOException, URISyntaxException {
     }

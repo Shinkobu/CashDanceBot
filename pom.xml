@@ -64,6 +64,7 @@
             <artifactId>emoji-java</artifactId>
             <version>5.1.1</version>
         </dependency>
+
 <!--for tests-->
 <!--        <dependency>-->
 <!--            <groupId>org.junit.jupiter</groupId>-->

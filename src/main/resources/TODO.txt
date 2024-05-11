@@ -39,3 +39,9 @@ DONE /feedback option for users
 DONE feedback scheduled sending to admin
 DONE number of interactions history in db, number of users
 TODO sql passwords to special file
+DONE lag to 500 msec
+DONE calendar input
+DONE CB in database approval
+TODO announcement to users about upgrade
+TODO better cashback info -<<<<<<<<<<<<<<<in progress
+TODO link to start menu
