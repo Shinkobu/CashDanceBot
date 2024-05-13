@@ -5,7 +5,6 @@ import CashDance.Bot.config.BotConfig;
 import CashDance.Bot.model.*;
 import CashDance.Bot.service.calendar.CalendarController;
 import CashDance.Bot.service.calendar.InlineCalendar;
-import CashDance.Bot.service.calendar.utils.Locale;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,7 +29,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static CashDance.Bot.service.ChoiceFor.*;
-import static CashDance.Bot.service.Constants.*;
+import static CashDance.Bot.service.MenuConstants.*;
 
 @Slf4j
 @Component
@@ -64,10 +63,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 //      configuring bot Menu in constructor
         this.config = config;
         List<BotCommand> listofCommands = new ArrayList<>();
-        listofCommands.add(new BotCommand("/start", "get a welcome message"));
-        listofCommands.add(new BotCommand("/mainmenu", "show main menu"));
-        listofCommands.add(new BotCommand("/cardsmenu", "show cards menu"));
-        listofCommands.add(new BotCommand("/categoriesmenu", "show categories menu"));
+        listofCommands.add(new BotCommand("/start", "Стартовое меню"));
+        listofCommands.add(new BotCommand("/mainmenu", "Главное меню"));
         try {
             this.execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
 
@@ -110,30 +107,25 @@ public class TelegramBot extends TelegramLongPollingBot {
             chatDataHolderMap.putIfAbsent(chatId, new ChatDataHolder());
 
             switch (messageText) {
-                case "/calendar":
-                    executeMessage(calendarController.startCalendar(String.valueOf(chatId),
-                            "Chose ur bitrh date"));
-                    break;
                 case "/start":
                     registerUser(update.getMessage());
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     showMainMenu(chatId);
-                    ChatDataHolder chatDataHolder = chatDataHolderMap.get(chatId);
-                    chatDataHolder.setChatState(ServiceState.DEFAULT_STATE);
                     chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
                 case "/help":
                     prepareAndSendMessage(chatId, config.getHelpText());
                     chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
-                case "/initnumber":
-                    number = 1;
-                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
-                    prepareAndSendMessage(chatId, number.toString());
-                    break;
-                case "/setnumber":
-                    number = 2;
-                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
+                case "/messagetoallusers":
+                    if (!adminService.isAdmin(chatId)) {
+                        prepareAndSendMessage(chatId, "Недостаточно полномочий");
+                        showMainMenu(chatId);
+                        chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
+                    } else {
+                        prepareAndSendMessage(chatId, "Введи сообщение для рассылки всем пользователям:");
+                        chatDataHolderMap.get(chatId).setChatState(ServiceState.AWAITING_MESSAGE_TOALL);
+                    }
                     break;
                 case "/allusers":
                     prepareAndSendMessage(chatId, adminService.showAllUsers(chatId));
@@ -143,23 +135,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                     prepareAndSendMessage(chatId, number.toString());
                     chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                     break;
-//                case "/register":
-//                    register(chatId);
-//                    // chatState = ServiceState.DEFAULT_STATE;
-//                    chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
-//                    break;
-//                case "/newcard":
-//                    log.info("Building new bank card...");
-//                    prepareAndSendMessage(chatId, "Введите название банка");
-//                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_BANK_CARD__AWAITING_BANK_NAME);
-//                    log.info("Waiting for bank name...");
-//                    break;
-//                case "/newcategory":
-//                    log.info("Building new category...");
-//                    prepareAndSendMessage(chatId, "Введите название категории");
-//                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CATEGORY__AWAITING_CATEGORY_NAME);
-//                    log.info("Waiting for category name...");
-//                    break;
                 case "/mycards":
                     showMyCards(chatId, false);
                     chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
@@ -172,13 +147,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                     showMenu(chatId, "Введите сообщение ниже, максимум 500 символов", cancel_toMainMenuList);
                     chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_FEEDBACK__AWATING_MESSAGE);
                     break;
-//                case "/newchance":
-//                    log.info("Building new cashback chance");
-//                    prepareAndSendMessage(chatId, "Выберите карту");
-//                    showMyCards(chatId, true);
-//                    chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_BANK_CARD_ID);
-//                    log.info("Waiting for bank card id...");
-//                    break;
                 case "/mychances":
                     showMyChances(chatId);
                     chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
@@ -212,24 +180,25 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 default:
 
+                    String updateText = update.getMessage().getText();
                     switch (chatDataHolderMap.get(chatId).getChatState()) {
                         case NEW_BANK_CARD__AWAITING_BANK_NAME:
-                            log.info(chatId + " Received bank name: " + update.getMessage().getText());
+                            log.info(chatId + " Received bank name: " + updateText);
                             showMenu(chatId, "Введите название карты", cancel_toMainMenuList);
                             log.info(chatId + " Waiting for card name...");
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_BANK_CARD__AWAITING_BANK_CARD_NAME);
-                            chatDataHolderMap.get(chatId).setNewBankName(update.getMessage().getText());
+                            chatDataHolderMap.get(chatId).setNewBankName(updateText);
 
                             break;
                         case EDIT_BANK_CARD__AWAITING_BANK_NAME:
-                            chatDataHolderMap.get(chatId).setNewBankName(update.getMessage().getText());
+                            chatDataHolderMap.get(chatId).setNewBankName(updateText);
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.EDIT_BANK_CARD__AWAITING_BANK_CARD_NAME);
                             showMenu(chatId, "Введите новое название карты", cancel_toMainMenuList);
 
                             break;
                         case NEW_BANK_CARD__AWAITING_BANK_CARD_NAME:
-                            chatDataHolderMap.get(chatId).setNewCardName(update.getMessage().getText());
-                            log.info(chatId + "Received bank card name: " + update.getMessage().getText());
+                            chatDataHolderMap.get(chatId).setNewCardName(updateText);
+                            log.info(chatId + "Received bank card name: " + updateText);
                             BankCard bankCard = entityBuilders.bankCardBuilder(repository.getUserByChatId(chatId),
                                     chatDataHolderMap.get(chatId).getNewBankName(),
                                     chatDataHolderMap.get(chatId).getNewCardName(),
@@ -240,13 +209,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                                 log.info(chatId + " Bank card saved to db - " + bankCard);
                             } else {
                                 prepareAndSendMessage(chatId, "Ошибка. Карта с таким именем уже существует!");
-                                log.info(chatId + " Bank card with the same name exists! - " + update.getMessage().getText());
+                                log.info(chatId + " Bank card with the same name exists! - " + updateText);
                             }
                             showCardsMenu(chatId);
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case EDIT_BANK_CARD__AWAITING_BANK_CARD_NAME:
-                            chatDataHolderMap.get(chatId).setNewCardName(update.getMessage().getText());
+                            chatDataHolderMap.get(chatId).setNewCardName(updateText);
                             BankCard bankCard1 = entityBuilders.bankCardBuilder(repository.getUserByChatId(chatId),
                                     chatDataHolderMap.get(chatId).getNewBankName(),
                                     chatDataHolderMap.get(chatId).getNewCardName(),
@@ -259,7 +228,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                             break;
 
                         case EDIT_CAT__AWAITING_CAT_NAME:
-                            chatDataHolderMap.get(chatId).setNewCategoryName(update.getMessage().getText());
+                            chatDataHolderMap.get(chatId).setNewCategoryName(updateText);
                             CbCategory cbCategory111 = entityBuilders.cbCategoryBuilder(repository.getUserByChatId(chatId),
                                     chatDataHolderMap.get(chatId).getNewCategoryName(), false,
                                     chatDataHolderMap.get(chatId).getCategoryId());
@@ -269,7 +238,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case NEW_CATEGORY__AWAITING_CATEGORY_NAME:
-                            chatDataHolderMap.get(chatId).setNewCategoryName(update.getMessage().getText());
+                            chatDataHolderMap.get(chatId).setNewCategoryName(updateText);
                             CbCategory cbCategory = entityBuilders.cbCategoryBuilder(repository.getUserByChatId(chatId),
                                     chatDataHolderMap.get(chatId).getNewCategoryName(), true, 0L);
                             if (!repository.hasCatDuplicatesInDb(chatId, cbCategory)) {
@@ -283,12 +252,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case NEW_FEEDBACK__AWATING_MESSAGE:
-                            if (update.getMessage().getText().length() >= 500) {
+                            if (updateText.length() >= 500) {
                                 prepareAndSendMessage(chatId, "Слишком длинное сообщение, максимум - 500 символов");
                             } else {
                                 repository.saveFeedbackToDb(entityBuilders.feedbackBuilder(
                                         repository.getUserByChatId(chatId),
-                                        update.getMessage().getText()));
+                                        updateText));
 
                                 prepareAndSendMessage(chatId, "Обратная связь получена");
                                 log.info(chatId + "- feedback received");
@@ -297,74 +266,52 @@ public class TelegramBot extends TelegramLongPollingBot {
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case NEW_CHANCE__AWAITING_BANK_CARD_ID:
-                            String bankCardId = update.getMessage().getText();
-                            chatDataHolderMap.get(chatId).setBankCardForNewChance(repository.findBankCardById(Long.valueOf(bankCardId)));
+                            chatDataHolderMap.get(chatId).setBankCardForNewChance(repository.findBankCardById(Long.valueOf(updateText)));
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_CATEGORY_ID);
                             showMenu(chatId, "Введите id категории", cancel_toMainMenuList);
 
                             showMyCategories(chatId);
                             break;
                         case NEW_CHANCE__AWAITING_CATEGORY_ID:
-                            String categoryId = update.getMessage().getText();
-                            chatDataHolderMap.get(chatId).setCategoryForNewChance(repository.findCatById(Long.valueOf(categoryId)));
+                            chatDataHolderMap.get(chatId).setCategoryForNewChance(repository.findCatById(Long.valueOf(updateText)));
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_RATE);
                             showMenu(chatId, "Введите % кешбека", cancel_toMainMenuList);
                             break;
                         case NEW_CHANCE__AWAITING_RATE:
-                            chatDataHolderMap.get(chatId).setRateForNewChance(Double.parseDouble(update.getMessage().getText()) / 100);
+                            chatDataHolderMap.get(chatId).setRateForNewChance(Double.parseDouble(updateText) / 100);
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_START_DATE);
-//                            showMenu(chatId, "Введите дату начала действия кэшбека в формате dd-mm-yyyy", cancel_toMainMenuList);
-
                             executeMessage(calendarController.startCalendar(String.valueOf(chatId),
                                     "Выберите дату начала кэшбека"));
-
                             break;
-//                        case NEW_CHANCE__AWAITING_START_DATE:
-////                            перенести ниже
-//
-//                            chatDataHolderMap.get(chatId).setStartDateOfNewChance(
-//                                    LocalDate.parse(update.getMessage().getText(),
-//                                            DateTimeFormatter.ofPattern("dd-MM-yyyy")));
-//                            chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_END_DATE);
-//                            showMenu(chatId, "Введите дату окончания действия кэшбека в формате dd-mm-yyyy", cancel_toMainMenuList);
-//                            break;
-//                        case NEW_CHANCE__AWAITING_END_DATE:
-////                            перенести ниже
-//                            chatDataHolderMap.get(chatId).setEndDateOfNewChance(LocalDate.parse(update.getMessage().getText(),
-//                                    DateTimeFormatter.ofPattern("dd-MM-yyyy")));
-//
-//                            if (chatDataHolderMap.get(chatId).getEndDateOfNewChance()
-//                                    .isAfter(chatDataHolderMap.get(chatId).getStartDateOfNewChance())
-//                                    || chatDataHolderMap.get(chatId).getEndDateOfNewChance()
-//                                    .isEqual(chatDataHolderMap.get(chatId).getStartDateOfNewChance())) {
-//
-//                                chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
-//                                repository.saveCbChanceToDb(
-//                                        entityBuilders.cbChanceBuilder(repository.getUserByChatId(chatId), chatDataHolderMap, chatId));
-//                                prepareAndSendMessage(chatId, "Кэшбек сохранён!");
-//                                showChancesMenu(chatId);
-//                            } else {
-//                                prepareAndSendMessage(chatId, "Введённая дата не может быть раньше даты начала");
-//                            }
-//                            break;
                         case ALL_CHANCES__AWAITING_CATEGORY_ID:
-                            String categoryId2 = update.getMessage().getText();
-                            CbCategory cbCategory2 = repository.findCatById(Long.valueOf(categoryId2));
+                            CbCategory cbCategory2 = repository.findCatById(Long.valueOf(
+                                    updateText));
                             showMyChancesOfCategory(chatId, cbCategory2.getName(), false);
 
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case ALL_CHANCES_ACTIVE__AWAITING_CATEGORY_ID:
-                            String categoryId3 = update.getMessage().getText();
-                            CbCategory cbCategory3 = repository.findCatById(Long.valueOf(categoryId3));
+                            CbCategory cbCategory3 = repository.findCatById(Long.valueOf(
+                                    updateText));
                             showMyChancesOfCategory(chatId, cbCategory3.getName(), true);
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             break;
                         case DELETE_CHANCE__AWAITING_CHANCE_ID:
                             log.info("Deleting Chance...");
-                            repository.deleteCbChance(Long.valueOf(update.getMessage().getText()), this);
+                            repository.deleteCbChance(Long.valueOf(updateText), this);
                             prepareAndSendMessage(chatId, "Кэшбек удален из базы данных");
 
+                            chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
+                            showChancesMenu(chatId);
+                            break;
+                        case AWAITING_MESSAGE_TOALL:
+                            Iterable<User> allUsers = repository.getAllUsers();
+                            int i = 0;
+                            for (User user : allUsers) {
+                                prepareAndSendMessage(user.getChatId(), updateText);
+                                i++;
+                            }
+                            prepareAndSendMessage(config.getOwnerId(), "Сообщение направлено на " + i + " пользователей");
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             showChancesMenu(chatId);
                             break;
@@ -374,7 +321,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
             }
 //      2) Handling - inlinekeyboard button is pressed
-            //          a) Calendar unit
+            //          a) Calendar unit - handling of calendar buttons pressings
         } else if (update.hasCallbackQuery() &
                 update.getCallbackQuery().getData().contains(InlineCalendar.CONTROL_ALIAS) |
                 update.getCallbackQuery().getData().contains(InlineCalendar.DATE_ALIAS)) {
@@ -389,15 +336,19 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
             } else if ((update.getCallbackQuery().getData().contains(InlineCalendar.DATE_ALIAS))) {
                 String result = calendarController.resolve(update.getCallbackQuery());
-                System.out.println("User date is: " + result);
-
-
+//                System.out.println("User date is: " + result);
                 switch (chatDataHolderMap.get(chatId).getChatState()) {
                     case NEW_CHANCE__AWAITING_START_DATE:
                         chatDataHolderMap.get(chatId).setStartDateOfNewChance(
                                 LocalDate.parse(result,
                                         DateTimeFormatter.ofPattern("yyyy-MM-dd")));
                         chatDataHolderMap.get(chatId).setChatState(ServiceState.NEW_CHANCE__AWAITING_END_DATE);
+
+                        //          Edition of sent message after pressing button
+
+                        executeEditMessageText("Вы выбрали: " + result, chatId,
+                                update.getCallbackQuery().getMessage().getMessageId());
+
                         executeMessage(calendarController.startCalendar(String.valueOf(chatId),
                                 "Выберите дату окончания действия кэшбека"));
                         break;
@@ -413,6 +364,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                             chatDataHolderMap.get(chatId).setChatState(ServiceState.DEFAULT_STATE);
                             repository.saveCbChanceToDb(
                                     entityBuilders.cbChanceBuilder(repository.getUserByChatId(chatId), chatDataHolderMap, chatId));
+
+                            //          Edition of sent message after pressing button
+                            executeEditMessageText("Вы выбрали: " + result, chatId,
+                                    update.getCallbackQuery().getMessage().getMessageId());
+
                             prepareAndSendMessage(chatId, "Кэшбек сохранён!");
                             showChancesMenu(chatId);
                         } else {
@@ -421,9 +377,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         break;
                 }
             }
-
-
-//          b) General unit
+//          b) General unit - handling of other buttons
         } else if (update.hasCallbackQuery()) {
 
             String callbackData = update.getCallbackQuery().getData();
@@ -444,6 +398,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 case MAINMENU_MYCATEGORIES:
                     showCategoriesMenu(chatId);
+                    break;
+                case MAINMENU_STARTMENU:
+                    startCommandReceived(chatId, update.getCallbackQuery().getMessage().getChat().getFirstName());
+                    showMainMenu(chatId);
                     break;
                 case ALLMENU_TOMAINMENU:
                     showMainMenu(chatId);
@@ -621,7 +579,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     void showCardsMenu(long chatId) {
         menuBuilders.delay(config.getMenuDelayTime());
-        showMenu(chatId, "Банковские карты", Constants.cardMenuList);
+        showMenu(chatId, "Банковские карты", MenuConstants.cardMenuList);
     }
 
     /**
@@ -689,13 +647,15 @@ public class TelegramBot extends TelegramLongPollingBot {
                     LocalDate todayDate = LocalDate.now();
                     if (cbChance.getEndDate().isAfter(todayDate.minusDays(1)) &&
                             cbChance.getStartDate().isBefore(todayDate.plusDays(1))) {
-                        if (cbChance.getCbCategory().getName().equals(categoryName)) {
-                            s.append(cbChance).append("\n");
+                        if (cbChance.getCbCategory().getName().equals(categoryName) |
+                                cbChance.getCbCategory().getName().equals("На всё")) {
+                            s.append(cbChance.shortToString()).append("\n");
                         }
                     }
                 } else {
-                    if (cbChance.getCbCategory().getName().equals(categoryName)) {
-                        s.append(cbChance).append("\n");
+                    if (cbChance.getCbCategory().getName().equals(categoryName) |
+                            cbChance.getCbCategory().getName().equals("На всё")) {
+                        s.append(cbChance.shortToString()).append("\n");
                     }
                 }
             }
@@ -729,14 +689,16 @@ public class TelegramBot extends TelegramLongPollingBot {
                     if (cbChance.getEndDate().isAfter(todayDate.minusDays(1)) &&
                             cbChance.getStartDate().isBefore(todayDate.plusDays(1))) {
                         if (cbChance.getBankCard().getName().equals(cardName)) {
-                            if (showWithId) s.append(cbChance.getCbChanceId()).append(cbChance).append("\n");
-                            if (!showWithId) s.append(cbChance).append("\n");
+                            if (showWithId)
+                                s.append(cbChance.getCbChanceId()).append(cbChance.shortToString()).append("\n");
+                            if (!showWithId) s.append(cbChance.shortToString()).append("\n");
                         }
-                    } else {
-                        if (cbChance.getBankCard().getName().equals(cardName)) {
-                            if (showWithId) s.append(cbChance.getCbChanceId()).append(cbChance).append("\n");
-                            if (!showWithId) s.append(cbChance).append("\n");
-                        }
+                    }
+                } else {
+                    if (cbChance.getBankCard().getName().equals(cardName)) {
+                        if (showWithId)
+                            s.append(cbChance.getCbChanceId()).append(cbChance.shortToString()).append("\n");
+                        if (!showWithId) s.append(cbChance.shortToString()).append("\n");
                     }
                 }
             }
@@ -788,7 +750,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             log.info("User saved to db " + user);
 
             List<String> cbCategoryNames = new ArrayList<>(Arrays.asList("Авто", "Заправки", "Дом и ремонт", "Кафе и рестораны",
-                    "Супермаркеты", "Развлечения", "Такси"));
+                    "Супермаркеты", "Развлечения", "Такси", "На всё"));
             for (String s : cbCategoryNames) {
                 CbCategory cbCategory = new CbCategory();
                 cbCategory.setName(s);
@@ -796,25 +758,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                 repository.saveCbCategoryToDb(cbCategory);
             }
             log.info("Basic Cb categories for user " + user + " created!");
-
-//            BankCard bankCard = new BankCard();
-//            bankCard.setCardName("Кредитка сбера");
-//            bankCard.setBankName("Сбербанк");
-//            bankCard.setUser(user);
-//            bankCardRepository.save(bankCard);
-//
-//            BankCard bankCard1 = new BankCard();
-//            bankCard1.setCardName("Карта Тинькофф");
-//            bankCard1.setBankName("Тинькофф");
-//            bankCard1.setUser(user);
-//            bankCardRepository.save(bankCard1);
-//
-//            BankCard bankCard2 = new BankCard();
-//            bankCard2.setCardName("Кредитка Альфы");
-//            bankCard2.setBankName("Альфа-банк");
-//            bankCard2.setUser(user);
-//            bankCardRepository.save(bankCard2);
-
         }
         log.info("User with id " + message.getChatId() + " is already registered");
     }

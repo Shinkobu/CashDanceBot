@@ -3,29 +3,17 @@ package CashDance.Bot.service;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Constants {
+public class MenuConstants {
 
     static final String DELIMETER = "///";
 
-// Кнопки отмены в меню для прерывания диалогов ввода данных
-
+// Кнопка отмены в меню для прерывания диалогов ввода данных
     static final MenuOption cancel_toMainMenu = new MenuOption("<<Отмена", MenuButtons.ALLMENU_TOMAINMENU);
-//    static final MenuOption cancel_toCardsMenu = new MenuOption("<<Отмена", MenuButtons.MAINMENU_MYCARDS);
-//    static final MenuOption cancel_toCatsMenu = new MenuOption("<<Отмена", MenuButtons.MAINMENU_MYCATEGORIES);
-//    static final MenuOption cancel_toChancesMenu = new MenuOption("<<Отмена", MenuButtons.MAINMENU_MYCASHBACK);
+    static final MenuOption allMenu_ToMainMenu = new MenuOption("В главное меню", MenuButtons.ALLMENU_TOMAINMENU);
 
     static List<MenuOption> cancel_toMainMenuList = new ArrayList<>() {{
         add(cancel_toMainMenu);
     }};
-//    static List<MenuOption> cancel_toCardsMenuList = new ArrayList<>() {{
-//        add(cancel_toCardsMenu);
-//    }};
-//    static List<MenuOption> cancel_toCatsMenuList = new ArrayList<>() {{
-//        add(cancel_toCatsMenu);
-//    }};
-//    static List<MenuOption> cancel_toChancesMenuList = new ArrayList<>() {{
-//        add(cancel_toChancesMenu);
-//    }};
 
     static final MenuOption yesNoMenu_Yes = new MenuOption("Да", MenuButtons.CHOICEMENU_YES);
     static final MenuOption yesNoMenu_No = new MenuOption("Нет", MenuButtons.CHOICEMENU_NO);
@@ -38,19 +26,21 @@ public class Constants {
     static final MenuOption mainMenu_CashbackOfCategory = new MenuOption("Мой кэшбэк", MenuButtons.MAINMENU_MYCASHBACK);
     static final MenuOption mainMenu_MyCards = new MenuOption("Мои банковские карты", MenuButtons.MAINMENU_MYCARDS);
     static final MenuOption mainMenu_MyCategories = new MenuOption("Мои категории кэшбэка", MenuButtons.MAINMENU_MYCATEGORIES);
-    static final MenuOption allMenu_ToMainMenu = new MenuOption("В главное меню", MenuButtons.ALLMENU_TOMAINMENU);
+    static final MenuOption mainMenu_startMenu = new MenuOption("<< Cтартовое меню", MenuButtons.MAINMENU_STARTMENU);
+
 
 
     static List<MenuOption> mainMenuList = new ArrayList<>() {{
         add(mainMenu_CashbackOfCategory);
         add(mainMenu_MyCards);
         add(mainMenu_MyCategories);
+        add(mainMenu_startMenu);
     }};
 
     static final MenuOption chancesMenu_ActualChancesOfCategory = new MenuOption("Кэшбэк по категории", MenuButtons.CHANCES_ACTCHANCES_CAT);
     static final MenuOption chancesMenu_ActualChancesOfCard = new MenuOption("Кэшбэк по карте", MenuButtons.CHANCES_ACTCHANCES_CARD);
     static final MenuOption chancesMenu_NewChance = new MenuOption("Новый кэшбэк", MenuButtons.CHANCESMENU_NEWCHANCE);
-    static final MenuOption chancesMenu_EditChance = new MenuOption("Изменить кэшбэк", MenuButtons.CHANCESMENU_EDITCHANCE);
+//    static final MenuOption chancesMenu_EditChance = new MenuOption("Изменить кэшбэк", MenuButtons.CHANCESMENU_EDITCHANCE);
     static final MenuOption chancesMenu_DeleteChance = new MenuOption("Удалить кэшбэк", MenuButtons.CHANCESMENU_DELETECHANCE);
 
     static List<MenuOption> chancesMenuList = new ArrayList<>() {{

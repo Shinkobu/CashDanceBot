@@ -15,9 +15,14 @@ public class AdminService {
     @Autowired
     Repository repository;
 
+
+    public boolean isAdmin (long chatId){
+        return chatId == config.getOwnerId();
+
+    }
     public String showAllUsers(long chatId) {
         String message = "";
-        if (chatId == config.getOwnerId()) {
+        if (isAdmin(chatId)) {
             List<User> users = (List<User>) repository.getAllUsers();
             for (User user : users) {
                 message = message.concat(user.getUserName() + "\n");
@@ -25,6 +30,18 @@ public class AdminService {
         } else
             message = "Недостаточно полномочий";
         return message;
+    }
+
+    public void messageToAllUsers(long chatId){
+        String message = "123";
+        if (chatId == config.getOwnerId()) {
+            List<User> users = (List<User>) repository.getAllUsers();
+            for (User user : users) {
+                message = message.concat(user.getUserName() + "\n");
+
+            }
+        } else
+            message = "Недостаточно полномочий";
     }
 
 

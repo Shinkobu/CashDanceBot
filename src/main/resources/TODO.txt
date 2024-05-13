@@ -42,6 +42,8 @@ TODO sql passwords to special file
 DONE lag to 500 msec
 DONE calendar input
 DONE CB in database approval
-TODO announcement to users about upgrade
-TODO better cashback info -<<<<<<<<<<<<<<<in progress
-TODO link to start menu
+DONE announcement to users about upgrade
+DONE better cashback info
+DONE link to start menu
+DONE убрать календарь после нажатия
+DONE category for all - add to selection -<<<<<<<<<<<<<<<in progress

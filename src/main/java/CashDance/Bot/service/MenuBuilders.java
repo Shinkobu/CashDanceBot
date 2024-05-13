@@ -2,7 +2,6 @@ package CashDance.Bot.service;
 
 import CashDance.Bot.model.BankCard;
 import CashDance.Bot.model.CbCategory;
-import CashDance.Bot.model.CbChance;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -13,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static CashDance.Bot.service.Constants.*;
+import static CashDance.Bot.service.MenuConstants.*;
 
 @Slf4j
 @Component
@@ -57,15 +56,15 @@ public class MenuBuilders {
         return resultList;
     }
 
-    private List<MenuOption> cbChanceMenuBuilder(List<CbChance> cbChanceList, MenuButtons menuButtons) {
-        List<MenuOption> resultList = new ArrayList<>();
-        for (CbChance cbChance : cbChanceList) {
-            MenuOption menuOption = new MenuOption(cbChance.shortToString(), menuButtons);
-            resultList.add(menuOption);
-        }
-        resultList.add(new MenuOption("<<Отмена", MenuButtons.ALLMENU_TOMAINMENU));
-        return resultList;
-    }
+//    private List<MenuOption> cbChanceMenuBuilder(List<CbChance> cbChanceList, MenuButtons menuButtons) {
+//        List<MenuOption> resultList = new ArrayList<>();
+//        for (CbChance cbChance : cbChanceList) {
+//            MenuOption menuOption = new MenuOption(cbChance.shortToString(), menuButtons);
+//            resultList.add(menuOption);
+//        }
+//        resultList.add(new MenuOption("<<Отмена", MenuButtons.ALLMENU_TOMAINMENU));
+//        return resultList;
+//    }
 
     SendMessage inlineMenuBuilder(long chatId, String menuName, List<MenuOption> menuOptionArrayList) {
 

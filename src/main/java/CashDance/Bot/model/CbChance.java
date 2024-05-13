@@ -1,6 +1,7 @@
 package CashDance.Bot.model;
 
 import javax.persistence.*;
+import javax.persistence.criteria.CriteriaBuilder;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 
@@ -65,8 +66,9 @@ public class CbChance extends CashbackEntity{
     public String shortToString() {
         return cbCategory.getName() +
                 " - " + rate * 100 + " %" +
+                " по " + bankCard.getName() +
                 " с " + startDate +
-                ", до " + endDate;
+                " до " + endDate;
     }
 
     public SimpleDateFormat getDateFormat() {
